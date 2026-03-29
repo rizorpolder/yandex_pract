@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "yandex_pract", "yandex_pract.csproj", "{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
