@@ -1,14 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace yandex_pract.CustomEventService.Dto;
 
+[Serializable]
 public class EventModelDto : IValidatableObject
 {
-	public Guid ID = Guid.NewGuid();
-	public string Title;
-	public string Description;
-	public DateTime StartTime;
-	public DateTime EndTime;
+	[JsonPropertyName("Title")]
+	public string Title { get; set; }
+	public string Description{ get; set; }
+	public DateTime StartTime{ get; set; }
+	public DateTime EndTime{ get; set; }
 
 	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 	{

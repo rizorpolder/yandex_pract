@@ -6,5 +6,7 @@ public interface IEventService
 {
 	bool AddEvent(EventModel eventModel);
 	bool RemoveEvent(EventModel eventModel);
-	bool TryUpdateEvent(EventModel eventModel);
+	public bool TryUpdateEvent(Guid modelId, EventModel newEventModel);
+	public IReadOnlyList<EventModel> GetEvents();
+	public (bool hasElement, EventModel? resultModel) GetEventById(Guid id);
 }

@@ -6,6 +6,8 @@ public class EventService : IEventService
 {
 	private static readonly List<EventModel> _evenst = new();
 
+	public IReadOnlyList<EventModel> GetEvents() => _evenst;
+
 	public bool AddEvent(EventModel eventModel)
 	{
 		if (_evenst.Contains(eventModel))
@@ -22,12 +24,19 @@ public class EventService : IEventService
 		return true;
 	}
 
-	public bool TryUpdateEvent(EventModel eventModel)
+	public bool TryUpdateEvent(Guid modelId, EventModel newEventModel)
 	{
-		var result = _evenst.FirstOrDefault(x => x.ID.Equals(eventModel.ID));
-		if (result == null) return false;
-
-		result.UpdateEvent(eventModel);
+		var modelResult = GetEventById(modelId);
+		if(!modelResult.hasElement)
+			return false;
+		
+		modelResult.resultModel?.UpdateEvent(newEventModel);
 		return true;
+	}
+
+	public (bool hasElement, EventModel? resultModel) GetEventById(Guid id)
+	{
+		var result = _evenst.FirstOrDefault(x => x.ID.Equals(id));
+		return (result != null, result);
 	}
 }
