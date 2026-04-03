@@ -14,62 +14,68 @@ public class EventsController : ControllerBase
 		_eventService = eventService;
 	}
 
-	[HttpGet("api/events")]
-	public ActionResult<IReadOnlyList<EventModel>> GetAddEvents()
+	[HttpGet]
+	public ActionResult<IReadOnlyList<EventDto>> GetAddEvents()
 	{
 		var events = _eventService.GetEvents();
 
 		if (events.Count > 0)
-			return new OkObjectResult(events);
+		{
+			var result = new List<EventDto>();
+
+			foreach (var e in events)
+				result.Add(new EventDto(e));
+
+			return new OkObjectResult(result);
+		}
 
 		return NoContent();
 	}
 
-	[HttpGet("api/events/{id}")]
-	public IActionResult GetEventById(Guid id)
+	[HttpGet("{id:guid}")]
+	public ActionResult<EventDto> GetEventById(Guid id)
 	{
 		var result = _eventService.GetEventById(id);
 
 		if (result.hasElement)
-			return new OkObjectResult(result);
+		{
+			return new OkObjectResult(new EventDto(result.resultModel));
+		}
 
-		return NotFound();
+
+		return NoContent();
 	}
 
-	[HttpPost("api/events")]
-	public ActionResult<EventModel> CreateNewEvent([FromBody] EventModelDto newEventModel)
+	[HttpPost]
+	public ActionResult<EventDto> CreateNewEvent([FromBody] EventDto newEvent)
 	{
-		if (!TryValidateModel(newEventModel))
+		if (!TryValidateModel(newEvent))
 			return BadRequest();
 
-		var model = new EventModel(newEventModel);
+		var model = new Event(newEvent);
 
 		if (_eventService.AddEvent(model))
-			return new OkObjectResult(model);
+			return new OkObjectResult(new EventDto(model));
 
 		return BadRequest();
 	}
 
-	[HttpPut("api/events/{id}")]
-	public ActionResult<EventModel> UpdateEventById(Guid id, [FromBody] EventModelDto eventModel)
+	[HttpPut("{id:guid}")]
+	public ActionResult<EventDto> UpdateEventById(Guid id, [FromBody] EventDto eventDto)
 	{
-		if (!TryValidateModel(eventModel))
+		if (!TryValidateModel(eventDto))
 			return BadRequest();
 
-		var model = _eventService.GetEventById(id);
+		var newModel = new Event(eventDto);
 
-		if (!model.hasElement)
+		var updateResult = _eventService.TryUpdateEvent(id, newModel);
+		if (!updateResult.hasElement)
 			return NoContent();
 
-		var isUpdated = _eventService.TryUpdateEvent(id, model.resultModel);
-
-		if (isUpdated)
-			return new OkObjectResult(model.resultModel);
-
-		return BadRequest();
+		return new OkObjectResult(new EventDto(updateResult.eventResult));
 	}
 
-	[HttpDelete("api/events/{id}")]
+	[HttpDelete("{id:guid}")]
 	public IActionResult DeleteEventById(Guid id)
 	{
 		var model = _eventService.GetEventById(id);

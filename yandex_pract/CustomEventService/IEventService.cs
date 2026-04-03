@@ -4,9 +4,9 @@ namespace yandex_pract.CustomEventService;
 
 public interface IEventService
 {
-	bool AddEvent(EventModel eventModel);
-	bool RemoveEvent(EventModel eventModel);
-	public bool TryUpdateEvent(Guid modelId, EventModel newEventModel);
-	public IReadOnlyList<EventModel> GetEvents();
-	public (bool hasElement, EventModel? resultModel) GetEventById(Guid id);
+	bool AddEvent(Event customEvent);
+	bool RemoveEvent(Event customEvent);
+	public  (bool hasElement, Event? eventResult) TryUpdateEvent(Guid modelId, Event newEvent);
+	public IReadOnlyList<Event> GetEvents();
+	public (bool hasElement, Event? resultModel) GetEventById(Guid id);
 }
