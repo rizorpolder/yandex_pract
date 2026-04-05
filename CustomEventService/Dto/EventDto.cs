@@ -11,8 +11,8 @@ public class EventDto : IValidatableObject
 	public string Title { get; set; }
 	
 	public string Description { get; set; }
-	public DateTime StartTime { get; set; }
-	public DateTime EndTime { get; set; }
+	public DateTime StartAt { get; set; }
+	public DateTime EndAt { get; set; }
 
 	[JsonConstructor]
 	public EventDto()
@@ -25,8 +25,8 @@ public class EventDto : IValidatableObject
 		ID = model.Id;
 		Title = model.Title;
 		Description = model.Description;
-		StartTime = model.StartTime;
-		EndTime = model.EndTime;
+		StartAt = model.StartAt;
+		EndAt = model.EndAd;
 	}
 
 	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -39,10 +39,9 @@ public class EventDto : IValidatableObject
 		{
 			yield return new ValidationResult("Title could not be smaller than 2 characters and bigger than 30");
 		}
-
-		if (EndTime <= StartTime)
+		if (EndAt <= StartAt)
 		{
-			yield return new ValidationResult("End date must be after start date.", new[] {nameof(EndTime)});
+			yield return new ValidationResult("End date must be after start date.", new[] {nameof(EndAt)});
 		}
 	}
 }

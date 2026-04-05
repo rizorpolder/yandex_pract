@@ -4,7 +4,7 @@ using yandex_pract.CustomEventService.Models;
 
 namespace yandex_pract.CustomEventService.Controllers;
 
-[ApiController] [Route("api/events")]
+[ApiController] [Route("events")]
 public class EventsController : ControllerBase
 {
 	private readonly IEventService _eventService;
@@ -19,17 +19,11 @@ public class EventsController : ControllerBase
 	{
 		var events = _eventService.GetEvents();
 
-		if (events.Count > 0)
-		{
-			var result = new List<EventDto>();
+		var result = new List<EventDto>();
 
-			foreach (var e in events)
-				result.Add(new EventDto(e));
-
-			return new OkObjectResult(result);
-		}
-
-		return NoContent();
+		foreach (var e in events)
+			result.Add(new EventDto(e));
+		return new OkObjectResult(result);
 	}
 
 	[HttpGet("{id:guid}")]
@@ -43,7 +37,7 @@ public class EventsController : ControllerBase
 		}
 
 
-		return NoContent();
+		return NotFound();
 	}
 
 	[HttpPost]
@@ -55,8 +49,8 @@ public class EventsController : ControllerBase
 		var model = new Event(newEvent);
 
 		if (_eventService.AddEvent(model))
-			return new OkObjectResult(new EventDto(model));
-
+			return new OkObjectResult(new EventDto(model)) {StatusCode = StatusCodes.Status201Created};
+		
 		return BadRequest();
 	}
 
@@ -70,7 +64,7 @@ public class EventsController : ControllerBase
 
 		var updateResult = _eventService.TryUpdateEvent(id, newModel);
 		if (!updateResult.hasElement)
-			return NoContent();
+			return NotFound();
 
 		return new OkObjectResult(new EventDto(updateResult.eventResult));
 	}
@@ -80,7 +74,7 @@ public class EventsController : ControllerBase
 	{
 		var model = _eventService.GetEventById(id);
 		if (!model.hasElement)
-			return NoContent();
+			return NotFound();
 
 		var isSuccess = _eventService.RemoveEvent(model.resultModel);
 		if (isSuccess)

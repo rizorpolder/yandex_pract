@@ -8,22 +8,22 @@ public class Event
 	public string Title;
 	public string Description;
 
-	public DateTime StartTime;
-	public DateTime EndTime;
+	public DateTime StartAt;
+	public DateTime EndAd;
 
 	public Event(EventDto dto)
 	{
 		Title = dto.Title;
 		Description = dto.Description;
-		StartTime = dto.StartTime;
-		EndTime = dto.EndTime;
+		StartAt = dto.StartAt;
+		EndAd = dto.EndAt;
 	}
 
 	public void UpdateEvent(Event customEvent)
 	{
 		Title = customEvent.Title;
 		Description = customEvent.Description;
-		StartTime = customEvent.StartTime;
-		EndTime = customEvent.EndTime;
+		StartAt = customEvent.StartAt;
+		EndAd = customEvent.EndAd;
 	}
 }
