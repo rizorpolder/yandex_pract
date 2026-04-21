@@ -2,9 +2,22 @@
 
 namespace yandex_pract.CustomEventService.Dto;
 
-public class PaginatedResultDto<T>
+public class PaginatedResultDto
 {
-	public int PageIndex { get; }
-	public int EntriesCount { get; }
-	public List<T> Data { get; }
+	private readonly int _pageIndex;
+	private readonly int _entriesCount;
+	private readonly List<EventDto> _data;
+
+	public int PageIndex => _pageIndex;
+
+	public int EntriesCount => _entriesCount;
+
+	public List<EventDto> Data => _data;
+
+	public PaginatedResultDto(List<EventDto> data, int pageIndex, int entriesCount)
+	{
+		_pageIndex = pageIndex;
+		_entriesCount = entriesCount;
+		_data = data;
+	}
 }

@@ -7,7 +7,6 @@ namespace yandex_pract.MockDB;
 public interface ICustomDataBase
 {
 	public IReadOnlyList<Event> GetAllEvents();
-	public IReadOnlyList<Event> GetFilteredEvents(string? title, DateTime? from, DateTime? to);
 	public bool TryAddEvent(Event customEvent);
 	public bool TryRemoveEvent(Event customEvent);
 	public (bool hasElement, Event? eventResult) TryUpdateEvent(Guid modelId, Event newEvent);

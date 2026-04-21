@@ -7,25 +7,27 @@ namespace yandex_pract.MockDB;
 
 public class MockDB : ICustomDataBase
 {
-	private const int INITIAL_CAPACITY = 10;
+	private const int INITIAL_CAPACITY = 100;
 	private List<Event> _events;
 
 	public MockDB()
 	{
+		_events = new List<Event>();
 		GenerateSomeEvents();
 	}
 
 	private void GenerateSomeEvents()
 	{
 		var rnd = new Random();
-		var title = $"event_name_";
 		var description = $"description_";
 
 		for (int i = 0; i < INITIAL_CAPACITY; i++)
 		{
 			var now = DateTime.Now + TimeSpan.FromSeconds(rnd.Next(0, 128));
 			var end = now.AddSeconds(rnd.Next(0, 128));
-			var entity = new Event(title: $"{title}_{i}", description: $"{description}_{i}", now, end);
+			var titleIdx = rnd.Next(0, INITIAL_CAPACITY);
+			var title = $"event_name_{titleIdx}";
+			var entity = new Event(title: $"{title}", description: $"{description}{i}", now, end);
 			_events.Add(entity);
 		}
 	}
@@ -34,23 +36,7 @@ public class MockDB : ICustomDataBase
 	{
 		return _events;
 	}
-
-	public IReadOnlyList<Event> GetFilteredEvents(string? title, DateTime? from, DateTime? to)
-	{
-		IEnumerable<Event> result = _events;
-		if (title == null)
-		{
-			result = result.Where(x => x.Title.Equals(title));
-		}
-
-		if (from.HasValue && to.HasValue)
-		{
-			result = result.Where(x => x.StartAt.Equals(from) && x.EndAt.Equals(to));
-		}
-
-		return result.ToList();
-	}
-
+	
 	public bool TryAddEvent(Event customEvent)
 	{
 		if (_events.Contains(customEvent))

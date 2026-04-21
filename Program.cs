@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using yandex_pract.Cors;
 using yandex_pract.CustomEventService;
 using yandex_pract.Middleware;
+using yandex_pract.MockDB;
 
 namespace yandex_pract;
 
@@ -16,9 +17,12 @@ public class Program
 
 		//builder.Services.AddCors(options => { options.AddPolicy("CORS", CORSMiddleware.CreatePolicyBuilder()); });
 		builder.Services.AddControllers();
+
 		builder.Services.AddScoped<IEventService, EventService>();
+		builder.Services.AddSingleton<ICustomDataBase, MockDB.MockDB>();
+
 		builder.Services.AddSwaggerGen();
-		
+
 		var app = builder.Build();
 		app.UseMiddleware<MyCustomMiddleware>();
 

@@ -18,16 +18,9 @@ public class EventsController : ControllerBase
 	}
 
 	[HttpGet]
-	public ActionResult<IReadOnlyList<EventDto>> GetEvents(string? title, DateTime? from, DateTime? to)
+	public ActionResult<PaginatedResultDto> GetEvents(string? title, DateTime? from, DateTime? to,  int page = 1, int pageSize = 10)
 	{
-		//todo валидация  что from раньше чем to
-		
-		var events = _eventService.GetEvents(title, from, to);
-
-		var result = new List<EventDto>();
-
-		foreach (var e in events)
-			result.Add(new EventDto(e));
+		var result = _eventService.GetEvents(title, from, to, page, pageSize);
 		return new OkObjectResult(result);
 	}
 
