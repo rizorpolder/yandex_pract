@@ -1,4 +1,5 @@
-﻿using yandex_pract.CustomEventService.Dto;
+﻿using System;
+using yandex_pract.CustomEventService.Dto;
 
 namespace yandex_pract.CustomEventService.Models;
 
@@ -9,14 +10,14 @@ public class Event
 	public string Description;
 
 	public DateTime StartAt;
-	public DateTime EndAd;
+	public DateTime EndAt;
 
 	public Event(EventDto dto)
 	{
 		Title = dto.Title;
 		Description = dto.Description;
 		StartAt = dto.StartAt;
-		EndAd = dto.EndAt;
+		EndAt = dto.EndAt;
 	}
 
 	public void UpdateEvent(Event customEvent)
@@ -24,6 +25,6 @@ public class Event
 		Title = customEvent.Title;
 		Description = customEvent.Description;
 		StartAt = customEvent.StartAt;
-		EndAd = customEvent.EndAd;
+		EndAt = customEvent.EndAt;
 	}
 }

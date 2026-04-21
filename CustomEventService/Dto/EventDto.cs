@@ -26,7 +26,7 @@ public class EventDto : IValidatableObject
 		Title = model.Title;
 		Description = model.Description;
 		StartAt = model.StartAt;
-		EndAt = model.EndAd;
+		EndAt = model.EndAt;
 	}
 
 	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -35,13 +35,13 @@ public class EventDto : IValidatableObject
 		{
 			yield return new ValidationResult("Title could not be empty");
 		}
-		else if (Title.Length > 30 || Title.Length < 2)
+		else if (Title.Length is > 30 or < 2)
 		{
 			yield return new ValidationResult("Title could not be smaller than 2 characters and bigger than 30");
 		}
 		if (EndAt <= StartAt)
 		{
-			yield return new ValidationResult("End date must be after start date.", new[] {nameof(EndAt)});
+			yield return new ValidationResult("End date must be after start date.", [nameof(EndAt)]);
 		}
 	}
 }

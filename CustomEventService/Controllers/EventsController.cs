@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using yandex_pract.CustomEventService.Dto;
 using yandex_pract.CustomEventService.Models;
 
@@ -15,9 +18,11 @@ public class EventsController : ControllerBase
 	}
 
 	[HttpGet]
-	public ActionResult<IReadOnlyList<EventDto>> GetAddEvents()
+	public ActionResult<IReadOnlyList<EventDto>> GetEvents(string? title, DateTime? from, DateTime? to)
 	{
-		var events = _eventService.GetEvents();
+		//todo валидация  что from раньше чем to
+		
+		var events = _eventService.GetEvents(title, from, to);
 
 		var result = new List<EventDto>();
 
