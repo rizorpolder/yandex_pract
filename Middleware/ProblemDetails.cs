@@ -1,4 +1,7 @@
-﻿namespace yandex_pract.Middleware;
+﻿using System;
+using System.Collections.Generic;
+
+namespace yandex_pract.Middleware;
 
 [Serializable]
 public class ProblemDetails

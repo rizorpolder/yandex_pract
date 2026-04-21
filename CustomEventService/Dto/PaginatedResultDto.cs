@@ -1,4 +1,6 @@
-﻿namespace yandex_pract.CustomEventService.Dto;
+﻿using System.Collections.Generic;
+
+namespace yandex_pract.CustomEventService.Dto;
 
 public class PaginatedResultDto<T>
 {

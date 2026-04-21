@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using yandex_pract.CustomEventService.Models;
 
@@ -9,7 +11,7 @@ public class EventDto : IValidatableObject
 {
 	public Guid ID { get; private set; }
 	public string Title { get; set; }
-	
+
 	public string Description { get; set; }
 	public DateTime StartAt { get; set; }
 	public DateTime EndAt { get; set; }
@@ -17,9 +19,8 @@ public class EventDto : IValidatableObject
 	[JsonConstructor]
 	public EventDto()
 	{
-		
 	}
-	
+
 	public EventDto(Event model)
 	{
 		ID = model.Id;
@@ -39,6 +40,7 @@ public class EventDto : IValidatableObject
 		{
 			yield return new ValidationResult("Title could not be smaller than 2 characters and bigger than 30");
 		}
+
 		if (EndAt <= StartAt)
 		{
 			yield return new ValidationResult("End date must be after start date.", [nameof(EndAt)]);

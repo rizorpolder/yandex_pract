@@ -2,60 +2,43 @@
 using System.Collections.Generic;
 using System.Linq;
 using yandex_pract.CustomEventService.Models;
+using yandex_pract.MockDB;
 
 namespace yandex_pract.CustomEventService;
 
 public class EventService : IEventService
 {
-	private static readonly List<Event> _evenst = new();
+	private readonly ICustomDataBase _db;
 
-	public IReadOnlyList<Event> GetEvents() => _evenst;
+	public EventService(ICustomDataBase db)
+	{
+		_db = db;
+	}
+
+	public IReadOnlyList<Event> GetEvents() => _db.GetAllEvents();
 
 	public IReadOnlyList<Event> GetEvents(string? title, DateTime? from, DateTime? to)
 	{
-		IEnumerable<Event> result = _evenst;
-		if (title == null)
-		{
-			result = result.Where(x => x.Title.Equals(title));
-		}
-
-		if (from.HasValue && to.HasValue)
-		{
-			result = result.Where(x => x.StartAt.Equals(from) && x.EndAt.Equals(to));
-		}
-
-		return result.ToList();
+		return _db.GetFilteredEvents(title, from, to);
 	}
 
 	public bool AddEvent(Event customEvent)
 	{
-		if (_evenst.Contains(customEvent))
-			return false;
-		_evenst.Add(customEvent);
-		return true;
+		return _db.TryAddEvent(customEvent);
 	}
 
 	public bool RemoveEvent(Event customEvent)
 	{
-		if (!_evenst.Contains(customEvent))
-			return false;
-		_evenst.Remove(customEvent);
-		return true;
+		return _db.TryRemoveEvent(customEvent);
 	}
 
 	public (bool hasElement, Event? eventResult) TryUpdateEvent(Guid modelId, Event newEvent)
 	{
-		var modelResult = GetEventById(modelId);
-		if (!modelResult.hasElement)
-			return (hasElement: false, eventResult: null);
-
-		modelResult.resultModel?.UpdateEvent(newEvent);
-		return (hasElement: true, eventResult: modelResult.resultModel);
+		return _db.TryUpdateEvent(modelId, newEvent);
 	}
 
 	public (bool hasElement, Event? resultModel) GetEventById(Guid id)
 	{
-		var result = _evenst.FirstOrDefault(x => x.Id.Equals(id));
-		return (result != null, result);
+		return _db.GetEventById(id);
 	}
 }

@@ -12,6 +12,14 @@ public class Event
 	public DateTime StartAt;
 	public DateTime EndAt;
 
+	public Event(string title, string description, DateTime startAt, DateTime endAt)
+	{
+		Title = title;
+		Description = description;
+		StartAt = startAt;
+		EndAt = endAt;
+	}
+
 	public Event(EventDto dto)
 	{
 		Title = dto.Title;
