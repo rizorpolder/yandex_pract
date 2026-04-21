@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using yandex_pract.Cors;
 using yandex_pract.CustomEventService;
 using yandex_pract.Middleware;
 using yandex_pract.MockDB;

@@ -10,4 +10,10 @@
       <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     </ItemGroup>
 
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="EventServiceTest\obj\EventServiceTest.csproj.nuget.dgspec.json" />
+      <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.assets.json" />
+      <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.packagespec.json" />
+    </ItemGroup>
+
 </Project>
