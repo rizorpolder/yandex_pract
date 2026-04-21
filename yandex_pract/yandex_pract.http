@@ -1,6 +1,0 @@
-@yandex_pract_HostAddress = http://localhost:5077
-
-GET {{yandex_pract_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
