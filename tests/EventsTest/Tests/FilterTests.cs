@@ -1,21 +1,25 @@
-﻿using TestProject1.Fixture;
-using yandex_pract.MockDB;
+﻿using TestProject.Fixture;
+using yandex_pract.CustomEventService;
 
-namespace TestProject1.Tests;
+namespace TestProject.Tests;
 
 [Collection("ShareDBCollection")]
 public class FilterTests
 {
-	private readonly MockDB _db;
+	private readonly EventService _service;
 
 	public FilterTests(TestDBFixture fixture)
 	{
-		_db = fixture.Db;
+		_service = fixture.Service;
 	}
 
 	[Fact]
 	public void TitleFilterTest()
 	{
-		
+	}
+	
+	[Fact]
+	public void DateFilterTest()
+	{
 	}
 }

@@ -1,34 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Diagnostics;
+using System.Text.Json;
+using yandex_pract.CustomEventService.Dto;
 using yandex_pract.CustomEventService.Models;
+using yandex_pract.MockDB;
 
-namespace yandex_pract.MockDB;
+namespace TestProject.Tests.Database;
 
-public class MockDB : ICustomDataBase
+public class TestDB : ICustomDataBase
 {
-	private const int INITIAL_CAPACITY = 100;
-	private List<Event> _events;
+	private const string FilePath = @"..\..\..\Tests\Database\MockDB.json";
+	
+	private List<Event> _events = new List<Event>();
 
-	public MockDB()
+	public TestDB()
 	{
-		_events = new List<Event>();
-		GenerateSomeEvents();
+		LoadData();
 	}
 
-	private void GenerateSomeEvents()
-	{
-		var rnd = new Random();
-		var description = $"description_";
+	private void LoadData()
+	{ 
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,FilePath);
+		string fullPath = Path.GetFullPath(path); 
 
-		for (int i = 0; i < INITIAL_CAPACITY; i++)
+		if (!File.Exists(fullPath))
 		{
-			var now = DateTime.Now + TimeSpan.FromSeconds(rnd.Next(0, 128));
-			var end = now.AddSeconds(rnd.Next(0, 128));
-			var titleIdx = rnd.Next(0, INITIAL_CAPACITY);
-			var title = $"event_name_{titleIdx}";
-			var entity = new Event(title: $"{title}", description: $"{description}{i}", now, end);
-			_events.Add(entity);
+			Debug.WriteLine("MockDB.json not found");
+			return;
+		}
+
+		var file = File.ReadAllText(fullPath);
+		List<EventDto>? eventsDto = JsonSerializer.Deserialize<List<EventDto>>(file);
+		if (eventsDto == null)
+		{
+			Debug.WriteLine("MockDB.json is broken");
+			return;
+		}
+
+		foreach (var dto in eventsDto)
+		{
+			var evt = new Event(dto)
+			{
+				Id = dto.ID
+			};
+			
+			_events.Add(evt);
+			
 		}
 	}
 

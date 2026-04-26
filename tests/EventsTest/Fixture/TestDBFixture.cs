@@ -1,13 +1,15 @@
-﻿using yandex_pract.MockDB;
+﻿using TestProject.Tests.Database;
+using yandex_pract.CustomEventService;
 
-namespace TestProject1.Fixture;
+namespace TestProject.Fixture;
 
 public class TestDBFixture
 {
-	public MockDB Db { get; }
-
+	public EventService Service { get; }
+	
+	private readonly TestDB _database = new TestDB();
 	public TestDBFixture()
 	{
-		Db = new MockDB();
+		Service = new EventService(_database);
 	}
 }
