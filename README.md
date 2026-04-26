@@ -18,7 +18,8 @@
 * Запустить коммандную строку
 * выполнить команду cd \d путь к проекту
 * выполнить команду dotnet build
-* выполнить команду dotnet run
+* выполнить команду dotnet run (для запуска основного проекта <code>dotnet run --project
+  src/Backend/Backend.csproj</code>)
 * перейти по ulr: http://localhost:5000/swagger/index.html
 
 ## Фильтрация

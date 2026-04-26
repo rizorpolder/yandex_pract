@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Backend\yandex_pract.csproj" />
+      <ProjectReference Include="..\..\src\Backend\Backend.csproj" />
     </ItemGroup>
 
 </Project>

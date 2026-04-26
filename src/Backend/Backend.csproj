@@ -4,6 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>yandex_pract</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

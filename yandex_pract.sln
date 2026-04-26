@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "yandex_pract", "src\Backend\yandex_pract.csproj", "{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "src\Backend\Backend.csproj", "{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventTests", "tests\EventTests\EventTests.csproj", "{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}"
 EndProject
