@@ -35,12 +35,6 @@ public class CrudTests
 	}
 
 	[Fact]
-	public void CreateIncorrectEventTest()
-	{
-		//Валидация в EventController через DTO
-	}
-
-	[Fact]
 	public void GetAllEventsTest()
 	{
 		var events = _service.GetEvents();
@@ -110,12 +104,6 @@ public class CrudTests
 
 		Assert.False(result.hasElement);
 		Assert.Null(result.eventResult);
-	}
-
-	[Fact]
-	public void UpdateIncorrectDateEventTest()
-	{
-		//Валидация в EventController через DTO
 	}
 
 	[Fact]
