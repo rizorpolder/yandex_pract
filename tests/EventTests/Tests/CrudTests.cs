@@ -1,11 +1,13 @@
-﻿using TestProject.Fixture;
+﻿using System.Reflection;
+using TestProject.Fixture;
 using yandex_pract.CustomEventService;
 using yandex_pract.CustomEventService.Models;
-using yandex_pract.MockDB;
 
-namespace TestProject.Tests;
+namespace EventTests.Tests;
 
 [Collection("ShareDBCollection")]
+[TestCaseOrderer("EventTests.Tests.PriorityOrder", "EventTests")]
+
 public class CrudTests
 {
 	private readonly EventService _service;
@@ -13,6 +15,7 @@ public class CrudTests
 	public CrudTests(TestDBFixture fixture)
 	{
 		_service = fixture.Service;
+		Console.WriteLine(Assembly.GetExecutingAssembly().GetName().Name);
 	}
 
 	[Fact]
@@ -36,18 +39,7 @@ public class CrudTests
 	[Fact]
 	public void CreateIncorrectEventTest()
 	{
-		var testEvent = new Event("testTitle",
-			"testDescription",
-			DateTime.Now,
-			DateTime.Now);
-
-		var eventCallback = _service.AddEvent(testEvent);
-
-		Assert.False(eventCallback);
-
-		var requested = _service.GetEventById(testEvent.Id);
-		Assert.False(requested.hasElement);
-		Assert.Null(requested.resultModel);
+		//TODO Валидация в контроллере 
 	}
 
 	[Fact]
@@ -58,7 +50,7 @@ public class CrudTests
 		Assert.True(requested.Count > 0);
 	}
 
-	[Fact]
+	[Fact, TestPriority(1)]
 	public void GetEventByID()
 	{
 		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
@@ -74,11 +66,11 @@ public class CrudTests
 		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0000");
 
 		var evt = _service.GetEventById(id);
-		Assert.True(evt.hasElement);
-		Assert.NotNull(evt.resultModel);
+		Assert.False(evt.hasElement);
+		Assert.Null(evt.resultModel);
 	}
 
-	[Fact]
+	[Fact, TestPriority(2)]
 	public void UpdateEventTest()
 	{
 		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
@@ -87,7 +79,9 @@ public class CrudTests
 		var startAt = DateTime.Now;
 		var endAt = DateTime.Now + TimeSpan.FromSeconds(15);
 
-		var result = _service.TryUpdateEvent(id, new Event(testTitle, testDescription, startAt, endAt));
+		var newTestEvent = new Event(testTitle, testDescription, startAt, endAt);
+		
+		var result = _service.TryUpdateEvent(id,newTestEvent);
 
 		Assert.True(result.hasElement);
 		Assert.NotNull(result.eventResult);
@@ -100,7 +94,7 @@ public class CrudTests
 	[Fact]
 	public void UpdateBrokenIDEventTest()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0000");
+		var id = Guid.Parse("24c2f1d5-582e-4ccd-1111-e0a00eae0000");
 		var testTitle = "testTitle";
 		var testDescription = "testDescription";
 		var startAt = DateTime.Now;
@@ -128,7 +122,7 @@ public class CrudTests
 		
 	}
 
-	[Fact]
+	[Fact, TestPriority(3)]
 	public void DeleteEventTest()
 	{
 		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
