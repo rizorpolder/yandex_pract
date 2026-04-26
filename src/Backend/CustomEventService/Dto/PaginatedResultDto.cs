@@ -12,6 +12,8 @@ public class PaginatedResultDto
 
 	public int EntriesCount => _entriesCount;
 
+	public int EntriesInPage => _data.Count;
+
 	public List<EventDto> Data => _data;
 
 	public PaginatedResultDto(List<EventDto> data, int pageIndex, int entriesCount)
