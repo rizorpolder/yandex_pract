@@ -3,47 +3,39 @@ using System.Collections.Generic;
 using System.Linq;
 using yandex_pract.CustomEventService.Dto;
 using yandex_pract.CustomEventService.Models;
+using yandex_pract.Filters;
 using yandex_pract.MockDB;
 
 namespace yandex_pract.CustomEventService;
 
-public class EventService(ICustomDataBase db) : IEventService
+public class EventService(ICustomDataBase db, EventFilterService filterService) : IEventService
 {
 	public IReadOnlyList<Event> GetEvents() => db.GetAllEvents();
 
-	public PaginatedResultDto GetEvents(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
+	public PaginatedResultDto GetEvents(string? title, DateTime? from, DateTime? to, int page, int pageSize)
 	{
-		IEnumerable<Event> result = GetEvents();
-
-		if (title != null)
+		var query = new EventQuery
 		{
-			result = result.Where(x => x.Title.Equals(title));
-		}
+			Title = title,
+			From = from,
+			To = to,
+			Page = page,
+			PageSize = pageSize
+		};
 
-		//TODO в ТЗ не указано что нужно Валидировать переданные параметры. 
+		var events = db.GetAllEvents().AsQueryable();
 
-		if (from.HasValue)
-		{
-			result = result.Where(x => x.StartAt > from);
-		}
+		events = filterService.ApplyFilters(events, query);
 
-		if (to.HasValue)
-		{
-			result = result.Where(x => x.EndAt > to);
-		}
+		var totalCount = events.Count();
 
-		return GetEvents(result, page, pageSize);
-	}
+		events = filterService.ApplyPagination(events, query);
 
-	private PaginatedResultDto GetEvents(IEnumerable<Event> source, int page = 1, int pageSize = 10)
-	{
-		var filteredDto = source
-			.Skip((page - 1) * pageSize)
-			.Take(pageSize)
-			.Select(eventItem => new EventDto(eventItem))
+		var dtoList = events
+			.Select(e => new EventDto(e))
 			.ToList();
 
-		return new PaginatedResultDto(filteredDto, page, pageSize);
+		return new PaginatedResultDto(dtoList, page, totalCount);
 	}
 
 	public bool AddEvent(Event customEvent)
@@ -64,5 +56,29 @@ public class EventService(ICustomDataBase db) : IEventService
 	public (bool hasElement, Event? resultModel) GetEventById(Guid id)
 	{
 		return db.GetEventById(id);
+	}
+
+	public IReadOnlyList<Event> FilterEvents(
+		string? title = null,
+		DateTime? startDate = null,
+		DateTime? endDate = null,
+		int page = 1,
+		int pageSize = 10)
+	{
+		var events = db.GetAllEvents().AsQueryable();
+
+		if (!string.IsNullOrWhiteSpace(title))
+			events = events.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+
+		if (startDate.HasValue)
+			events = events.Where(e => e.StartAt >= startDate.Value);
+
+		if (endDate.HasValue)
+			events = events.Where(e => e.EndAt <= endDate.Value);
+
+		return events
+			.Skip((page - 1) * pageSize)
+			.Take(pageSize)
+			.ToList();
 	}
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using yandex_pract.CustomEventService;
+using yandex_pract.Filters;
 using yandex_pract.Middleware;
 using yandex_pract.MockDB;
 
@@ -17,8 +18,10 @@ public class Program
 		//builder.Services.AddCors(options => { options.AddPolicy("CORS", CORSMiddleware.CreatePolicyBuilder()); });
 		builder.Services.AddControllers();
 
-		builder.Services.AddScoped<IEventService, EventService>();
 		builder.Services.AddSingleton<ICustomDataBase, MockDB.MockDB>();
+		builder.Services.AddScoped<EventFilterService>();
+		builder.Services.AddScoped<IEventService, EventService>();
+		
 
 		builder.Services.AddSwaggerGen();
 

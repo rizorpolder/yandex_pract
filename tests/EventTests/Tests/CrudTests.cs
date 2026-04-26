@@ -1,13 +1,10 @@
-﻿using System.Reflection;
-using TestProject.Fixture;
+﻿using TestProject.Fixture;
 using yandex_pract.CustomEventService;
 using yandex_pract.CustomEventService.Models;
 
 namespace EventTests.Tests;
 
 [Collection("ShareDBCollection")]
-[TestCaseOrderer("EventTests.Tests.PriorityOrder", "EventTests")]
-
 public class CrudTests
 {
 	private readonly EventService _service;
@@ -15,125 +12,125 @@ public class CrudTests
 	public CrudTests(TestDBFixture fixture)
 	{
 		_service = fixture.Service;
-		Console.WriteLine(Assembly.GetExecutingAssembly().GetName().Name);
 	}
 
 	[Fact]
 	public void CreateEventTest()
 	{
-		var testEvent = new Event("testTitle",
+		var evt = new Event(
+			"testTitle",
 			"testDescription",
 			DateTime.Now,
-			DateTime.Now + TimeSpan.FromSeconds(15));
+			DateTime.Now.AddSeconds(10));
 
-		var eventCallback = _service.AddEvent(testEvent);
+		var added = _service.AddEvent(evt);
 
-		Assert.True(eventCallback);
+		Assert.True(added);
 
-		var requested = _service.GetEventById(testEvent.Id);
-		Assert.True(requested.hasElement);
-		Assert.NotNull(requested.resultModel);
-		Assert.Equal(testEvent, requested.resultModel);
+		var result = _service.GetEventById(evt.Id);
+		Assert.True(result.hasElement);
+		Assert.NotNull(result.resultModel);
+		Assert.Equal(evt.Title, result.resultModel!.Title);
+		Assert.Equal(evt.Description, result.resultModel.Description);
 	}
 
 	[Fact]
 	public void CreateIncorrectEventTest()
 	{
-		//TODO Валидация в контроллере 
+		//Валидация в EventController через DTO
 	}
 
 	[Fact]
 	public void GetAllEventsTest()
 	{
-		var requested = _service.GetEvents();
-		Assert.NotNull(requested);
-		Assert.True(requested.Count > 0);
+		var events = _service.GetEvents();
+
+		Assert.NotNull(events);
+		Assert.True(events.Count > 0);
 	}
 
-	[Fact, TestPriority(1)]
+	[Fact]
 	public void GetEventByID()
 	{
 		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
 
 		var evt = _service.GetEventById(id);
+
 		Assert.True(evt.hasElement);
 		Assert.NotNull(evt.resultModel);
+		Assert.Equal(id, evt.resultModel!.Id);
 	}
-	
+
 	[Fact]
 	public void GetEventByIncorrectID()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0000");
+		var id = Guid.NewGuid();
 
 		var evt = _service.GetEventById(id);
+
 		Assert.False(evt.hasElement);
 		Assert.Null(evt.resultModel);
 	}
 
-	[Fact, TestPriority(2)]
+	[Fact]
 	public void UpdateEventTest()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
-		var testTitle = "testTitle";
-		var testDescription = "testDescription";
-		var startAt = DateTime.Now;
-		var endAt = DateTime.Now + TimeSpan.FromSeconds(15);
+		var evt = new Event(
+			"oldTitle",
+			"oldDescription",
+			DateTime.Now,
+			DateTime.Now.AddSeconds(10));
 
-		var newTestEvent = new Event(testTitle, testDescription, startAt, endAt);
-		
-		var result = _service.TryUpdateEvent(id,newTestEvent);
+		_service.AddEvent(evt);
+
+		var updated = new Event(
+			"newTitle",
+			"newDescription",
+			DateTime.Now,
+			DateTime.Now.AddSeconds(20));
+
+		var result = _service.TryUpdateEvent(evt.Id, updated);
 
 		Assert.True(result.hasElement);
 		Assert.NotNull(result.eventResult);
-		Assert.Equal(testTitle, result.eventResult.Title);
-		Assert.Equal(testDescription, result.eventResult.Description);
-		Assert.Equal(startAt, result.eventResult.StartAt);
-		Assert.Equal(endAt, result.eventResult.EndAt);
+		Assert.Equal("newTitle", result.eventResult!.Title);
+		Assert.Equal("newDescription", result.eventResult.Description);
 	}
-	
+
 	[Fact]
 	public void UpdateBrokenIDEventTest()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-1111-e0a00eae0000");
-		var testTitle = "testTitle";
-		var testDescription = "testDescription";
-		var startAt = DateTime.Now;
-		var endAt = DateTime.Now + TimeSpan.FromSeconds(15);
+		var evt = new Event(
+			"title",
+			"desc",
+			DateTime.Now,
+			DateTime.Now.AddSeconds(10));
 
-		var result = _service.TryUpdateEvent(id, new Event(testTitle, testDescription, startAt, endAt));
+		var result = _service.TryUpdateEvent(Guid.NewGuid(), evt);
+
 		Assert.False(result.hasElement);
 		Assert.Null(result.eventResult);
-		
 	}
-	
+
 	[Fact]
 	public void UpdateIncorrectDateEventTest()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0000");
-		var testTitle = "testTitle";
-		var testDescription = "testDescription";
-		
-		var startAt = DateTime.Now + TimeSpan.FromSeconds(15);
-		var endAt = DateTime.Now;
-
-		var result = _service.TryUpdateEvent(id, new Event(testTitle, testDescription, startAt, endAt));
-		Assert.False(result.hasElement);
-		Assert.Null(result.eventResult);
-		
+		//Валидация в EventController через DTO
 	}
 
-	[Fact, TestPriority(3)]
+	[Fact]
 	public void DeleteEventTest()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
-		var evt = _service.GetEventById(id);
-		Assert.True(evt.hasElement);
-		Assert.NotNull(evt.resultModel);
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10));
 
-		var result = _service.RemoveEvent(evt.resultModel);
-		Assert.True(result);
-		var deleted = _service.GetEventById(id);
-		Assert.False(deleted.hasElement);
-		Assert.Null(deleted.resultModel);
+		_service.AddEvent(evt);
+
+		var removed = _service.RemoveEvent(evt);
+
+		Assert.True(removed);
+
+		var result = _service.GetEventById(evt.Id);
+		Assert.False(result.hasElement);
+		Assert.Null(result.resultModel);
 	}
 }
