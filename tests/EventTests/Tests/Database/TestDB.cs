@@ -8,8 +8,6 @@ namespace TestProject.Tests.Database;
 
 public class TestDB : ICustomDataBase
 {
-	private const string FilePath = @"..\..\..\Tests\Database\MockDB.json";
-	
 	private List<Event> _events = new List<Event>();
 
 	public TestDB()
@@ -18,9 +16,12 @@ public class TestDB : ICustomDataBase
 	}
 
 	private void LoadData()
-	{ 
-		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,FilePath);
-		string fullPath = Path.GetFullPath(path); 
+	{
+		var projectRoot = Path.GetFullPath(
+			Path.Combine(AppContext.BaseDirectory, "..", "..", "..")
+		);
+
+		var fullPath = Path.Combine(projectRoot, "Tests", "Database", "MockDB.json");
 
 		if (!File.Exists(fullPath))
 		{
@@ -42,9 +43,8 @@ public class TestDB : ICustomDataBase
 			{
 				Id = dto.ID
 			};
-			
+
 			_events.Add(evt);
-			
 		}
 	}
 

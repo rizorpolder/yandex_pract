@@ -6,26 +6,19 @@ using yandex_pract.Filters;
 using yandex_pract.Middleware;
 using yandex_pract.MockDB;
 
-namespace yandex_pract;
-
 public class Program
 {
-	public static void Main(string[] args)
+	public static void ConfigureServices(IServiceCollection services)
 	{
-		var builder = WebApplication.CreateBuilder(args);
+		services.AddControllers();
+		services.AddSingleton<ICustomDataBase, MockDB>();
+		services.AddScoped<EventFilterService>();
+		services.AddScoped<IEventService, EventService>();
+		services.AddSwaggerGen();
+	}
 
-
-		//builder.Services.AddCors(options => { options.AddPolicy("CORS", CORSMiddleware.CreatePolicyBuilder()); });
-		builder.Services.AddControllers();
-
-		builder.Services.AddSingleton<ICustomDataBase, MockDB.MockDB>();
-		builder.Services.AddScoped<EventFilterService>();
-		builder.Services.AddScoped<IEventService, EventService>();
-		
-
-		builder.Services.AddSwaggerGen();
-
-		var app = builder.Build();
+	public static void Configure(WebApplication app)
+	{
 		app.UseMiddleware<MyCustomMiddleware>();
 
 		if (app.Environment.IsDevelopment())
@@ -34,11 +27,19 @@ public class Program
 			app.UseSwaggerUI();
 		}
 
-
 		app.UseHttpsRedirection();
 		app.UseRouting();
-		//app.UseCors("CORS");
 		app.MapControllers();
+	}
+
+	public static void Main(string[] args)
+	{
+		var builder = WebApplication.CreateBuilder(args);
+		ConfigureServices(builder.Services);
+
+		var app = builder.Build();
+		Configure(app);
+
 		app.Run();
 	}
 }
