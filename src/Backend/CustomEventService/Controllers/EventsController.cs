@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using yandex_pract.CustomEventService.Dto;
 using yandex_pract.CustomEventService.Models;
 
@@ -15,14 +17,9 @@ public class EventsController : ControllerBase
 	}
 
 	[HttpGet]
-	public ActionResult<IReadOnlyList<EventDto>> GetAddEvents()
+	public ActionResult<PaginatedResultDto> GetEvents(string? title, DateTime? from, DateTime? to,  int page = 1, int pageSize = 10)
 	{
-		var events = _eventService.GetEvents();
-
-		var result = new List<EventDto>();
-
-		foreach (var e in events)
-			result.Add(new EventDto(e));
+		var result = _eventService.GetEvents(title, from, to, page, pageSize);
 		return new OkObjectResult(result);
 	}
 

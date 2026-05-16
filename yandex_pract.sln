@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "yandex_pract", "yandex_pract.csproj", "{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "src\Backend\Backend.csproj", "{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventTests", "tests\EventTests\EventTests.csproj", "{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +10,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F5DCBDA0-581E-4CCB-B7FB-FF4A0575CE75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
 EndGlobal
