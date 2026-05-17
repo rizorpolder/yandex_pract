@@ -20,8 +20,7 @@ public class BackgroundBookingService(IBookingDataBase db) : BackgroundService
 					continue;
 
 				await Task.Delay(2, stoppingToken);
-				booking.Status = BookingStatus.Confirmed;
-				booking.ProceedAt = DateTime.UtcNow;
+				UpdateState(booking);
 			}
 			catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
 			{
@@ -33,4 +32,11 @@ public class BackgroundBookingService(IBookingDataBase db) : BackgroundService
 			}
 		}
 	}
+	
+	public void UpdateState(Booking booking)
+	{
+		booking.Status = BookingStatus.Confirmed;
+		booking.ProceedAt = DateTime.UtcNow;
+	}
+
 }

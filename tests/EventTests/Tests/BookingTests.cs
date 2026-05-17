@@ -1,6 +1,8 @@
 using TestProject.Fixture;
+using TestProject.Tests.Database;
 using yandex_pract.CustomEventService;
 using yandex_pract.CustomEventService.Models;
+using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
 using yandex_pract.Services.BookingService.Models;
 
@@ -11,11 +13,13 @@ public class BookingTests
 {
 	private readonly IBookingService _service;
 	private readonly IEventService _eventService;
+	private readonly TestDB _database;
 
 	public BookingTests(TestDBFixture fixture)
 	{
 		_service = fixture.BookingService;
 		_eventService = fixture.EventService;
+		_database = fixture.Database;
 	}
 
 
@@ -97,5 +101,25 @@ public class BookingTests
 		var result = _service.GetBookingByIdAsync(booking.Id).Result;
 		Assert.False(result.haveBooking);
 		Assert.Null(result.booking);
+	}
+
+	[Fact]
+	public async Task BookingStatusChangesAfterBackgroundProcessing()
+	{
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1));
+		_eventService.AddEvent(evt);
+
+		var (result, booking) = await _service.CreateBookingAsync(evt.Id);
+		Assert.True(result);
+		Assert.Equal(BookingStatus.Pending, booking.Status);
+
+		var worker = new BackgroundBookingService(_database);
+
+		worker.UpdateState(booking);
+
+		var (found, updated) = await _service.GetBookingByIdAsync(booking.Id);
+
+		Assert.True(found);
+		Assert.Equal(BookingStatus.Confirmed, updated.Status);
 	}
 }

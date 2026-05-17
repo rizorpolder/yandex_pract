@@ -34,7 +34,7 @@ public class Program
 			app.UseSwaggerUI();
 		}
 
-		app.UseHttpsRedirection();
+		//app.UseHttpsRedirection();
 		app.UseRouting();
 		app.MapControllers();
 	}

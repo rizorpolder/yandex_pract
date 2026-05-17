@@ -9,6 +9,8 @@ public class TestDBFixture
 {
 	public EventService EventService { get; }
 	public BookingService BookingService { get; }
+	public TestDB Database => _database;
+	
 	private readonly TestDB _database = new TestDB();
 	private readonly EventFilterService _eventFilterService = new EventFilterService();
 
