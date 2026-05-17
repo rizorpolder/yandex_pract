@@ -6,7 +6,7 @@ namespace yandex_pract.MockDB;
 public interface IBookingDataBase
 {
 	public (bool hasBooking, Booking? booking) TryDequeue();
-	public bool Enqueue(Guid eventId);
+	public Booking Enqueue(Guid eventId);
 	bool TryFindBooking(Guid guid, out Booking result);
 	public bool TryAddBooking(Guid eventId, Booking booking);
 }

@@ -5,6 +5,6 @@ namespace yandex_pract.Services.BookingService;
 
 public interface IBookingService
 {
-	void CreateBookingAsync(Guid eventId);
-	Booking GetBookingByIdAsync(Guid eventId);
+	Booking CreateBookingAsync(Guid eventId);
+	(bool haveBooking, Booking result) GetBookingByIdAsync(Guid eventId);
 }

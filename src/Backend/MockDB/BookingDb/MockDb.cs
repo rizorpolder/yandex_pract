@@ -16,10 +16,11 @@ public partial class MockDb : IBookingDataBase
 		return (hasBooking, booking);
 	}
 
-	public bool Enqueue(Guid eventId)
+	public Booking Enqueue(Guid eventId)
 	{
-		_awaitingBookings.Enqueue(new Booking(eventId));
-		return true;
+		var result = new Booking(eventId);
+		_awaitingBookings.Enqueue(result);
+		return result;
 	}
 
 	public bool TryFindBooking(Guid guid, out Booking result)
