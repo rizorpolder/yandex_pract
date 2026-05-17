@@ -11,7 +11,7 @@ public class CrudTests
 
 	public CrudTests(TestDBFixture fixture)
 	{
-		_service = fixture.Service;
+		_service = fixture.EventService;
 	}
 
 	[Fact]

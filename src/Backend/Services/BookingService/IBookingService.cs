@@ -1,10 +1,11 @@
 using System;
-using yandex_pract.Services.BookingService.Modesl;
+using System.Threading.Tasks;
+using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BookingService;
 
 public interface IBookingService
 {
-	Booking CreateBookingAsync(Guid eventId);
-	(bool haveBooking, Booking result) GetBookingByIdAsync(Guid eventId);
+	Task<(bool result, Booking booking)> CreateBookingAsync(Guid eventId);
+	Task<(bool haveBooking, Booking booking)> GetBookingByIdAsync(Guid bookingId);
 }

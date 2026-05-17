@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using yandex_pract.Services.BookingService.Modesl;
+using System.Linq;
+using System.Threading.Tasks;
+using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.MockDB;
 
@@ -10,26 +12,20 @@ public partial class MockDb : IBookingDataBase
 	private Dictionary<Guid, Booking> _bookings = new Dictionary<Guid, Booking>();
 	private ConcurrentQueue<Booking> _awaitingBookings = new();
 
-	public (bool hasBooking, Booking? booking) TryDequeue()
+	public Booking Dequeue()
 	{
-		var hasBooking = _awaitingBookings.TryDequeue(out var booking);
-		return (hasBooking, booking);
+		_awaitingBookings.TryDequeue(out var booking);
+		return booking;
 	}
 
-	public Booking Enqueue(Guid eventId)
+	public void Enqueue(Booking booking)
 	{
-		var result = new Booking(eventId);
-		_awaitingBookings.Enqueue(result);
-		return result;
+		_awaitingBookings.Enqueue(booking);
+		_bookings.TryAdd(booking.Id, booking);
 	}
 
-	public bool TryFindBooking(Guid guid, out Booking result)
+	public bool TryFindBooking(Guid bookingId, out Booking result)
 	{
-		return _bookings.TryGetValue(guid, out result);
-	}
-
-	public bool TryAddBooking(Guid eventId, Booking booking)
-	{
-		return _bookings.TryAdd(eventId, booking);
+		return _bookings.TryGetValue(bookingId, out result);
 	}
 }

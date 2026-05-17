@@ -1,4 +1,4 @@
-namespace yandex_pract.Services.BookingService.Modesl;
+namespace yandex_pract.Services.BookingService.Models;
 
 public enum BookingStatus
 {

@@ -3,12 +3,14 @@ using System.Text.Json;
 using yandex_pract.CustomEventService.Dto;
 using yandex_pract.CustomEventService.Models;
 using yandex_pract.MockDB;
+using yandex_pract.Services.BookingService.Models;
 
 namespace TestProject.Tests.Database;
 
-public class TestDB : IEventDataBase
+public class TestDB : IEventDataBase, IBookingDataBase
 {
 	private List<Event> _events = new List<Event>();
+	private Dictionary<Guid, Booking> _bookings = new Dictionary<Guid, Booking>();
 
 	public TestDB()
 	{
@@ -83,5 +85,21 @@ public class TestDB : IEventDataBase
 	{
 		var result = _events.FirstOrDefault(x => x.Id.Equals(eventId));
 		return (result != null, result);
+	}
+
+
+	public Booking Dequeue()
+	{
+		return null;
+	}
+
+	public void Enqueue(Booking booking)
+	{
+		_bookings.TryAdd(booking.Id, booking);
+	}
+
+	public bool TryFindBooking(Guid bookingId, out Booking result)
+	{
+		return _bookings.TryGetValue(bookingId, out result);
 	}
 }

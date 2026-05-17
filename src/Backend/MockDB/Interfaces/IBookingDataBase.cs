@@ -1,12 +1,11 @@
 using System;
-using yandex_pract.Services.BookingService.Modesl;
+using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.MockDB;
 
 public interface IBookingDataBase
 {
-	public (bool hasBooking, Booking? booking) TryDequeue();
-	public Booking Enqueue(Guid eventId);
-	bool TryFindBooking(Guid guid, out Booking result);
-	public bool TryAddBooking(Guid eventId, Booking booking);
+	public Booking Dequeue();
+	public void Enqueue(Booking booking);
+	bool TryFindBooking(Guid bookingId, out Booking result);
 }

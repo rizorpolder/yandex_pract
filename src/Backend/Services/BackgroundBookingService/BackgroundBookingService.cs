@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using yandex_pract.MockDB;
-using yandex_pract.Services.BookingService.Modesl;
+using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BackgroundBookingService;
 
@@ -15,14 +15,13 @@ public class BackgroundBookingService(IBookingDataBase db) : BackgroundService
 		{
 			try
 			{
-				var (hasBooking, booking) = db.TryDequeue();
-				if (!hasBooking)
+				var booking = db.Dequeue();
+				if (booking == null)
 					continue;
-				
+
 				await Task.Delay(2, stoppingToken);
 				booking.Status = BookingStatus.Confirmed;
 				booking.ProceedAt = DateTime.UtcNow;
-				db.TryAddBooking(booking.EventId, booking);
 			}
 			catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
 			{

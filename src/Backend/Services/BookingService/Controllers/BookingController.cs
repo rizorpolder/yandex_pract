@@ -4,35 +4,53 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using yandex_pract.MockDB;
+using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BookingService;
 
-[ApiController, Route("events")]
-public class BookingController(IBookingService bookingService) : Controller
+[ApiController]
+[Route("events")]
+public class BookingController : ControllerBase
 {
-	private readonly IEventDataBase _eventDataBase;
+	private readonly IBookingService bookingService;
+
+	public BookingController(IBookingService bookingService)
+	{
+		this.bookingService = bookingService;
+	}
 
 	[HttpPost("{eventId:guid}/book")]
-	public IActionResult AddBooking([FromRoute] Guid eventId)
+	public async Task<IActionResult> AddBooking(Guid eventId)
 	{
-		//проверить есть ли такое событие, если нет -404
-		// иначе вызвать метод и вернуть 
-		var (haveEvent, result) = _eventDataBase.GetEventById(eventId);
-		if (!haveEvent)
-			return NotFound();
+		var (result, booking) = await bookingService.CreateBookingAsync(eventId);
 
-		var booking = bookingService.CreateBookingAsync(eventId);
+		if (!result)
+			return NotFound(new { Message = "Event not found" });
 
-		var responseData = new { Id = booking.Id, EventId = booking, eventId, Status = booking.Status };
-		Response.Headers.Append("Location", $"/bookings/{booking.Id}");
+		var location = $"/events/bookings/{booking.Id}";
+		Response.Headers.Append("Location", location);
 
-		return CreatedAtAction(nameof(AddBooking), responseData);
+		return Accepted(new
+		{
+			booking.Id,
+			booking.EventId,
+			booking.Status
+		});
 	}
 
 	[HttpGet("bookings/{bookingId:guid}")]
-	public IActionResult GetBooking([FromRoute] Guid bookingId)
+	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
-		var result = bookingService.GetBookingByIdAsync(bookingId);
-		return null;
+		var (haveBooking, booking) = await bookingService.GetBookingByIdAsync(bookingId);
+
+		if (!haveBooking)
+			return NotFound();
+
+		return Ok(new
+		{
+			booking.Id,
+			booking.EventId,
+			booking.Status
+		});
 	}
 }
