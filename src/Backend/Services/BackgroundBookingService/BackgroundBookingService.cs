@@ -17,7 +17,10 @@ public class BackgroundBookingService(IBookingDataBase db) : BackgroundService
 			{
 				var booking = db.Dequeue();
 				if (booking == null)
+				{
+					await Task.Delay(10, stoppingToken);
 					continue;
+				}
 
 				await Task.Delay(2, stoppingToken);
 				UpdateState(booking);

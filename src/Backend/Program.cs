@@ -13,12 +13,17 @@ public class Program
 	public static void ConfigureServices(IServiceCollection services)
 	{
 		services.AddControllers();
-		services.AddSingleton<IEventDataBase, MockDb>();
-		services.AddSingleton<IBookingDataBase, MockDb>();
+
+		services.AddSingleton<MockDb>();
+		services.AddSingleton<IEventDataBase>(sp => sp.GetRequiredService<MockDb>());
+		services.AddSingleton<IBookingDataBase>(sp => sp.GetRequiredService<MockDb>());
+
+		services.AddSingleton<IBookingService, BookingService>();
+		
 		services.AddScoped<EventFilterService>();
 		services.AddScoped<IEventService, EventService>();
+		
 		//booking
-		services.AddSingleton<IBookingService, BookingService>();
 		services.AddHostedService<BackgroundBookingService>();
 		
 		services.AddSwaggerGen();
@@ -34,7 +39,7 @@ public class Program
 			app.UseSwaggerUI();
 		}
 
-		//app.UseHttpsRedirection();
+		app.UseHttpsRedirection();
 		app.UseRouting();
 		app.MapControllers();
 	}
