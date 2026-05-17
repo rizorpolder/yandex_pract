@@ -22,7 +22,7 @@ public class BackgroundBookingService(IBookingDataBase db) : BackgroundService
 					continue;
 				}
 
-				await Task.Delay(2, stoppingToken);
+				await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 				UpdateState(booking);
 			}
 			catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
