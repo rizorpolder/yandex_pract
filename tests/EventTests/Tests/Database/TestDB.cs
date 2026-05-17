@@ -6,7 +6,7 @@ using yandex_pract.MockDB;
 
 namespace TestProject.Tests.Database;
 
-public class TestDB : ICustomDataBase
+public class TestDB : IEventDataBase
 {
 	private List<Event> _events = new List<Event>();
 

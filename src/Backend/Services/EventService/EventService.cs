@@ -8,7 +8,7 @@ using yandex_pract.MockDB;
 
 namespace yandex_pract.CustomEventService;
 
-public class EventService(ICustomDataBase db, EventFilterService filterService) : IEventService
+public class EventService(IEventDataBase db, EventFilterService filterService) : IEventService
 {
 	public IReadOnlyList<Event> GetEvents() => db.GetAllEvents();
 

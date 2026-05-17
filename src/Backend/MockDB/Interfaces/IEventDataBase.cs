@@ -4,7 +4,7 @@ using yandex_pract.CustomEventService.Models;
 
 namespace yandex_pract.MockDB;
 
-public interface ICustomDataBase
+public interface IEventDataBase
 {
 	public IReadOnlyList<Event> GetAllEvents();
 	public bool TryAddEvent(Event customEvent);

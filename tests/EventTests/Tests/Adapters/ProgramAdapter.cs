@@ -14,7 +14,7 @@ public class ProgramAdapter
 			.AddControllers()
 			.AddApplicationPart(typeof(EventsController).Assembly);
 
-		services.AddSingleton<ICustomDataBase, TestDB>();
+		services.AddSingleton<IEventDataBase, TestDB>();
 		services.AddScoped<EventFilterService>();
 		services.AddScoped<IEventService, EventService>();
 	}

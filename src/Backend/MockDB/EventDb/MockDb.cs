@@ -5,14 +5,13 @@ using yandex_pract.CustomEventService.Models;
 
 namespace yandex_pract.MockDB;
 
-public class MockDB : ICustomDataBase
+public partial class MockDb : IEventDataBase
 {
 	private const int INITIAL_CAPACITY = 100;
-	private List<Event> _events;
+	private List<Event> _events = new List<Event>();
 
-	public MockDB()
+	public MockDb()
 	{
-		_events = new List<Event>();
 		GenerateSomeEvents();
 	}
 
