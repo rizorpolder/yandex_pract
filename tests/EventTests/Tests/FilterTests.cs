@@ -10,7 +10,7 @@ public class FilterTests
 
 	public FilterTests(TestDBFixture fixture)
 	{
-		_service = fixture.Service;
+		_service = fixture.EventService;
 	}
 
 	[Fact]

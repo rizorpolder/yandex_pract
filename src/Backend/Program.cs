@@ -5,15 +5,27 @@ using yandex_pract.CustomEventService;
 using yandex_pract.Filters;
 using yandex_pract.Middleware;
 using yandex_pract.MockDB;
+using yandex_pract.Services.BackgroundBookingService;
+using yandex_pract.Services.BookingService;
 
 public class Program
 {
 	public static void ConfigureServices(IServiceCollection services)
 	{
 		services.AddControllers();
-		services.AddSingleton<ICustomDataBase, MockDB>();
+
+		services.AddSingleton<MockDb>();
+		services.AddSingleton<IEventDataBase>(sp => sp.GetRequiredService<MockDb>());
+		services.AddSingleton<IBookingDataBase>(sp => sp.GetRequiredService<MockDb>());
+
+		services.AddSingleton<IBookingService, BookingService>();
+		
 		services.AddScoped<EventFilterService>();
 		services.AddScoped<IEventService, EventService>();
+		
+		//booking
+		services.AddHostedService<BackgroundBookingService>();
+		
 		services.AddSwaggerGen();
 	}
 
