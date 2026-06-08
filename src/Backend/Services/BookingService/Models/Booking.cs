@@ -8,7 +8,7 @@ public class Booking
 	public Guid EventId;
 	public BookingStatus Status;
 	public DateTime CreatedAt;
-	public DateTime ProceedAt;
+	public DateTime ProcessedAt;
 
 	public Booking(Guid eventId)
 	{
@@ -21,7 +21,7 @@ public class Booking
 	public void Confirm()
 	{
 		Status = BookingStatus.Confirmed;
-		ProceedAt = DateTime.UtcNow;
+		ProcessedAt = DateTime.UtcNow;
 	}
 
 	public void Reject()

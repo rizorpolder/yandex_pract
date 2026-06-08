@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using TestProject.Fixture;
 using TestProject.Tests.Database;
 using yandex_pract.CustomEventService;
@@ -200,4 +201,121 @@ public class BookingTests
 
 		Assert.Throws<NoAvailableSeatsException>(() => { _service.CreateBookingAsync(evt.Id).Wait(); });
 	}
+
+	[Fact]
+	public void Booking_Confirm_SetsStatusAndProcessedAt()
+	{
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
+		_eventService.CreateEventAsync(evt);
+
+		var booking = _service.CreateBookingAsync(evt.Id).Result.booking;
+
+		booking.Confirm();
+
+		Assert.Equal(BookingStatus.Confirmed, booking.Status);
+		Assert.NotNull(booking.ProcessedAt);
+	}
+
+	[Fact]
+	public void Booking_Reject_SetsStatusAndProcessedAt()
+	{
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
+		_eventService.CreateEventAsync(evt);
+
+		var booking = _service.CreateBookingAsync(evt.Id).Result.booking;
+
+		booking.Reject();
+
+		Assert.Equal(BookingStatus.Rejected, booking.Status);
+		Assert.NotNull(booking.ProcessedAt);
+	}
+
+	[Fact]
+	public void Booking_Reject_ThenReleaseSeats_RestoresAvailableSeats()
+	{
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 1);
+		_eventService.CreateEventAsync(evt);
+
+		var booking = _service.CreateBookingAsync(evt.Id).Result.booking;
+
+		var (_, updatedEventBefore) = _eventService.GetEventById(evt.Id);
+		Assert.Equal(0, updatedEventBefore.AvailableSeats);
+
+		booking.Reject();
+		evt.ReleaseSeats();
+
+		var (_, updatedEventAfter) = _eventService.GetEventById(evt.Id);
+		Assert.Equal(1, updatedEventAfter.AvailableSeats);
+	}
+
+	[Fact]
+	public void Booking_Reject_ThenReleaseSeats_AllowsNewBooking()
+	{
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 1);
+		_eventService.CreateEventAsync(evt);
+
+		var booking1 = _service.CreateBookingAsync(evt.Id).Result.booking;
+
+		booking1.Reject();
+		evt.ReleaseSeats();
+
+		var (result, booking2) = _service.CreateBookingAsync(evt.Id).Result;
+
+		Assert.True(result);
+		Assert.NotNull(booking2);
+		Assert.Equal(evt.Id, booking2.EventId);
+	}
+	
+	[Fact]
+	public void ConcurrentBookings_NoOverbookingOccurs()
+	{
+		var totalSeats = 5;
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), totalSeats);
+		_eventService.CreateEventAsync(evt);
+
+		var exceptions = 0;
+		var successes = 0;
+
+		Parallel.For(0, 20, i =>
+		{
+			try
+			{
+				var result = _service.CreateBookingAsync(evt.Id).Result;
+				if (result.result)
+					Interlocked.Increment(ref successes);
+			}
+			catch (AggregateException ex) when (ex.InnerException is NoAvailableSeatsException)
+			{
+				Interlocked.Increment(ref exceptions);
+			}
+		});
+
+		Assert.Equal(totalSeats, successes);
+		Assert.Equal(20 - totalSeats, exceptions);
+
+		var (_, updatedEvent) = _eventService.GetEventById(evt.Id);
+		Assert.Equal(0, updatedEvent.AvailableSeats);
+	}
+	
+	[Fact]
+	public void ConcurrentBookings_AllIdsAreUnique()
+	{
+		var totalSeats = 10;
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), totalSeats);
+		_eventService.CreateEventAsync(evt);
+
+		var ids = new ConcurrentBag<Guid>();
+
+		Parallel.For(0, totalSeats, i =>
+		{
+			var result = _service.CreateBookingAsync(evt.Id).Result;
+			Assert.True(result.result);
+			ids.Add(result.booking.Id);
+		});
+
+		Assert.Equal(totalSeats, ids.Count);
+		Assert.Equal(totalSeats, ids.Distinct().Count());
+	}
+
+
 }
