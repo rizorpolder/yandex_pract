@@ -44,8 +44,8 @@ public class EventsController : ControllerBase
 			return BadRequest();
 
 		var model = new Event(newEvent);
-
-		if (_eventService.AddEvent(model))
+		
+		if (_eventService.CreateEventAsync(model))
 			return new OkObjectResult(new EventDto(model)) {StatusCode = StatusCodes.Status201Created};
 		
 		return BadRequest();

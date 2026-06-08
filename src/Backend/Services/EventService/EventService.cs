@@ -38,7 +38,7 @@ public class EventService(IEventDataBase db, EventFilterService filterService) :
 		return new PaginatedResultDto(dtoList, page, totalCount);
 	}
 
-	public bool AddEvent(Event customEvent)
+	public bool CreateEventAsync(Event customEvent)
 	{
 		return db.TryAddEvent(customEvent);
 	}

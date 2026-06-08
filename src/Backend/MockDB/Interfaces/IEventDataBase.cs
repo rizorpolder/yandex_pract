@@ -13,4 +13,5 @@ public interface IEventDataBase
 
 	public (bool hasElement, Event? resultModel) GetEventById(Guid eventId);
 
+	void Update(Event evt);
 }

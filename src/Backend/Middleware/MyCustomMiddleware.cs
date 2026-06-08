@@ -53,6 +53,7 @@ public class MyCustomMiddleware
 		{
 			ValidationException ve => StatusCodes.Status400BadRequest,
 			NotFoundException nfe => StatusCodes.Status404NotFound,
+			NoAvailableSeatsException nse => StatusCodes.Status409Conflict,
 			_ => StatusCodes.Status500InternalServerError,
 		};
 }

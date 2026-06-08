@@ -26,7 +26,7 @@ public partial class MockDb : IEventDataBase
 			var end = now.AddSeconds(rnd.Next(0, 128));
 			var titleIdx = rnd.Next(0, INITIAL_CAPACITY);
 			var title = $"event_name_{titleIdx}";
-			var entity = new Event(title: $"{title}", description: $"{description}{i}", now, end);
+			var entity = new Event(title: $"{title}", description: $"{description}{i}", now, end, 10);
 			_events.Add(entity);
 		}
 	}
@@ -66,5 +66,12 @@ public partial class MockDb : IEventDataBase
 	{
 		var result = _events.FirstOrDefault(x => x.Id.Equals(eventId));
 		return (result != null, result);
+	}
+
+	public void Update(Event evt)
+	{
+		var modelResult = GetEventById(evt.Id);
+		if (modelResult.hasElement)
+			modelResult.resultModel?.UpdateEvent(evt);
 	}
 }
