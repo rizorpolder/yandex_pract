@@ -21,9 +21,9 @@ public class CrudTests
 			"testTitle",
 			"testDescription",
 			DateTime.Now,
-			DateTime.Now.AddSeconds(10));
+			DateTime.Now.AddSeconds(10), 3);
 
-		var added = _service.AddEvent(evt);
+		var added = _service.CreateEventAsync(evt);
 
 		Assert.True(added);
 
@@ -46,13 +46,15 @@ public class CrudTests
 	[Fact]
 	public void GetEventByID()
 	{
-		var id = Guid.Parse("24c2f1d5-582e-4ccd-b60c-e0a00eae0588");
+		var testEvt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
+		var added = _service.CreateEventAsync(testEvt);
+		Assert.True(added);
 
-		var evt = _service.GetEventById(id);
+		var evt = _service.GetEventById(testEvt.Id);
 
 		Assert.True(evt.hasElement);
 		Assert.NotNull(evt.resultModel);
-		Assert.Equal(id, evt.resultModel!.Id);
+		Assert.Equal(testEvt.Id, evt.resultModel!.Id);
 	}
 
 	[Fact]
@@ -73,15 +75,15 @@ public class CrudTests
 			"oldTitle",
 			"oldDescription",
 			DateTime.Now,
-			DateTime.Now.AddSeconds(10));
+			DateTime.Now.AddSeconds(10), 3);
 
-		_service.AddEvent(evt);
+		_service.CreateEventAsync(evt);
 
 		var updated = new Event(
 			"newTitle",
 			"newDescription",
 			DateTime.Now,
-			DateTime.Now.AddSeconds(20));
+			DateTime.Now.AddSeconds(20), 3);
 
 		var result = _service.TryUpdateEvent(evt.Id, updated);
 
@@ -98,7 +100,7 @@ public class CrudTests
 			"title",
 			"desc",
 			DateTime.Now,
-			DateTime.Now.AddSeconds(10));
+			DateTime.Now.AddSeconds(10), 3);
 
 		var result = _service.TryUpdateEvent(Guid.NewGuid(), evt);
 
@@ -109,9 +111,9 @@ public class CrudTests
 	[Fact]
 	public void DeleteEventTest()
 	{
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10));
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 
-		_service.AddEvent(evt);
+		_service.CreateEventAsync(evt);
 
 		var removed = _service.RemoveEvent(evt);
 

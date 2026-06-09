@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -7,39 +8,81 @@ using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BackgroundBookingService;
 
-public class BackgroundBookingService(IBookingDataBase db) : BackgroundService
+public class BackgroundBookingService : BackgroundService
 {
+	private readonly IBookingDataBase _bookingDataBase;
+	private readonly IEventDataBase _eventDataBase;
+
+	private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
+
+	public BackgroundBookingService(
+		IBookingDataBase bookingDataBase,
+		IEventDataBase eventDataBase)
+	{
+		_bookingDataBase = bookingDataBase;
+		_eventDataBase = eventDataBase;
+	}
+
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{
-			try
+			var pending = _bookingDataBase.GetPending().ToList();
+			if (pending.Count == 0)
 			{
-				var booking = db.Dequeue();
-				if (booking == null)
-				{
-					await Task.Delay(10, stoppingToken);
-					continue;
-				}
+				await Task.Delay(50, stoppingToken);
+				continue;
+			}
 
-				await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
-				UpdateState(booking);
-			}
-			catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-			{
-				break;
-			}
-			catch (Exception ex)
-			{
-				//Other exception
-			}
+			var tasks = pending.Select(b => ProcessBookingAsync(b, stoppingToken));
+			await Task.WhenAll(tasks);
 		}
 	}
-	
-	public void UpdateState(Booking booking)
+
+	private async Task ProcessBookingAsync(Booking booking, CancellationToken stoppingToken)
 	{
-		booking.Status = BookingStatus.Confirmed;
-		booking.ProceedAt = DateTime.UtcNow;
+		try
+		{
+			await Task.Delay(10, stoppingToken);
+			await _processingSemaphore.WaitAsync(stoppingToken);
+			var (hasEvent, evt) = _eventDataBase.GetEventById(booking.EventId);
+
+			if (!hasEvent)
+			{
+				booking.Reject();
+				_bookingDataBase.UpdateBooking(booking);
+				return;
+			}
+
+			booking.Confirm();
+			_bookingDataBase.UpdateBooking(booking);
+			_eventDataBase.Update(evt);
+		}
+		catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+		{
+			booking.Reject();
+			_bookingDataBase.UpdateBooking(booking);
+			ReleaseSeats(booking);
+		}
+		catch (Exception)
+		{
+			booking.Reject();
+			_bookingDataBase.UpdateBooking(booking);
+			ReleaseSeats(booking);
+		}
+		finally
+		{
+			_processingSemaphore.Release();
+		}
 	}
 
+	private void ReleaseSeats(Booking booking)
+	{
+		var (hasEvent, evt) = _eventDataBase.GetEventById(booking.EventId);
+		if (hasEvent)
+		{
+			evt.ReleaseSeats();
+			_eventDataBase.Update(evt);
+		}
+	}
 }

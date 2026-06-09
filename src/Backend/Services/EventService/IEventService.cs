@@ -6,7 +6,7 @@ namespace yandex_pract.CustomEventService;
 
 public interface IEventService
 {
-	bool AddEvent(Event customEvent);
+	bool CreateEventAsync(Event customEvent);
 	bool RemoveEvent(Event customEvent);
 	public (bool hasElement, Event? eventResult) TryUpdateEvent(Guid modelId, Event newEvent);
 	public PaginatedResultDto GetEvents(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10);

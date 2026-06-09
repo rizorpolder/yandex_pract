@@ -12,12 +12,17 @@ public class Event : IEquatable<Event>
 	public DateTime StartAt;
 	public DateTime EndAt;
 
-	public Event(string title, string description, DateTime startAt, DateTime endAt)
+	public int TotalSeats { get; private set; }
+	public int AvailableSeats { get; private set; }
+
+	public Event(string title, string description, DateTime startAt, DateTime endAt, int totalSeats)
 	{
 		Title = title;
 		Description = description;
 		StartAt = startAt;
 		EndAt = endAt;
+		TotalSeats = totalSeats;
+		AvailableSeats = totalSeats;
 	}
 
 	#region Fluent Methods
@@ -60,6 +65,8 @@ public class Event : IEquatable<Event>
 		Description = dto.Description;
 		StartAt = dto.StartAt;
 		EndAt = dto.EndAt;
+		TotalSeats = dto.TotalSeats.Value;
+		AvailableSeats = TotalSeats;
 	}
 
 	public void UpdateEvent(Event customEvent)
@@ -70,6 +77,18 @@ public class Event : IEquatable<Event>
 		EndAt = customEvent.EndAt;
 	}
 
+	public bool TryReserveSeats(int count = 1)
+	{
+		if (AvailableSeats - count < 0) return false;
+		AvailableSeats -= count;
+		return true;
+	}
+
+	public void ReleaseSeats(int count = 1)
+	{
+		AvailableSeats += count;
+	}
+
 	public bool Equals(Event? other)
 	{
 		if (other is null) return false;
@@ -77,5 +96,4 @@ public class Event : IEquatable<Event>
 		return Id.Equals(other.Id) && Title == other.Title && Description == other.Description &&
 		       StartAt.Equals(other.StartAt) && EndAt.Equals(other.EndAt);
 	}
-	
 }

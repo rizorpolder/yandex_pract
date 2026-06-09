@@ -28,4 +28,16 @@ public partial class MockDb : IBookingDataBase
 	{
 		return _bookings.TryGetValue(bookingId, out result);
 	}
+
+	public List<Booking> GetPending()
+	{
+		var result = _awaitingBookings.ToList();
+		_awaitingBookings.Clear();
+		return result;
+	}
+
+	public void UpdateBooking(Booking booking)
+	{
+		_bookings[booking.Id] = booking;
+	}
 }

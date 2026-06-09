@@ -15,6 +15,8 @@ public class EventDto : IValidatableObject
 	public string Description { get; set; }
 	public DateTime StartAt { get; set; }
 	public DateTime EndAt { get; set; }
+	
+	public int? TotalSeats { get; set; }
 
 	[JsonConstructor]
 	public EventDto()
@@ -28,6 +30,7 @@ public class EventDto : IValidatableObject
 		Description = model.Description;
 		StartAt = model.StartAt;
 		EndAt = model.EndAt;
+		TotalSeats = model.TotalSeats;
 	}
 
 	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -36,6 +39,11 @@ public class EventDto : IValidatableObject
 		{
 			yield return new ValidationResult("Title could not be empty");
 		}
+		else if (TotalSeats < 0)
+		{
+			yield return new ValidationResult("Should be greater than or equal to zero");
+		}
+		
 		else if (Title.Length is > 30 or < 2)
 		{
 			yield return new ValidationResult("Title could not be smaller than 2 characters and bigger than 30");
