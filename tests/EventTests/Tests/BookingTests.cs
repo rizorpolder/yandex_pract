@@ -24,7 +24,6 @@ public class BookingTests
 		_database = fixture.Database;
 	}
 
-
 	[Fact]
 	public void CreateSingleBookingTest()
 	{
@@ -181,7 +180,6 @@ public class BookingTests
 		Assert.Throws<NoAvailableSeatsException>(() => { _service.CreateBookingAsync(evt.Id).Wait(); });
 	}
 
-
 	[Fact]
 	public void CreateBooking_ForNonExistingEvent_ReturnsFalse()
 	{
@@ -265,7 +263,7 @@ public class BookingTests
 		Assert.NotNull(booking2);
 		Assert.Equal(evt.Id, booking2.EventId);
 	}
-	
+
 	[Fact]
 	public void ConcurrentBookings_NoOverbookingOccurs()
 	{
@@ -276,19 +274,25 @@ public class BookingTests
 		var exceptions = 0;
 		var successes = 0;
 
-		Parallel.For(0, 20, i =>
-		{
-			try
+		Parallel.For(0,
+			20,
+			i =>
 			{
-				var result = _service.CreateBookingAsync(evt.Id).Result;
-				if (result.result)
-					Interlocked.Increment(ref successes);
-			}
-			catch (AggregateException ex) when (ex.InnerException is NoAvailableSeatsException)
-			{
-				Interlocked.Increment(ref exceptions);
-			}
-		});
+				try
+				{
+					var result = _service.CreateBookingAsync(evt.Id).Result;
+					if (result.result)
+						Interlocked.Increment(ref successes);
+				}
+				catch (NoAvailableSeatsException)
+				{
+					Interlocked.Increment(ref exceptions);
+				}
+				catch (AggregateException ex) when (ex.InnerException is NoAvailableSeatsException)
+				{
+					Interlocked.Increment(ref exceptions);
+				}
+			});
 
 		Assert.Equal(totalSeats, successes);
 		Assert.Equal(20 - totalSeats, exceptions);
@@ -296,7 +300,7 @@ public class BookingTests
 		var (_, updatedEvent) = _eventService.GetEventById(evt.Id);
 		Assert.Equal(0, updatedEvent.AvailableSeats);
 	}
-	
+
 	[Fact]
 	public void ConcurrentBookings_AllIdsAreUnique()
 	{
@@ -306,16 +310,16 @@ public class BookingTests
 
 		var ids = new ConcurrentBag<Guid>();
 
-		Parallel.For(0, totalSeats, i =>
-		{
-			var result = _service.CreateBookingAsync(evt.Id).Result;
-			Assert.True(result.result);
-			ids.Add(result.booking.Id);
-		});
+		Parallel.For(0,
+			totalSeats,
+			i =>
+			{
+				var result = _service.CreateBookingAsync(evt.Id).Result;
+				Assert.True(result.result);
+				ids.Add(result.booking.Id);
+			});
 
 		Assert.Equal(totalSeats, ids.Count);
 		Assert.Equal(totalSeats, ids.Distinct().Count());
 	}
-
-
 }

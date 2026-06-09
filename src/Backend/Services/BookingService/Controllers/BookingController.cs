@@ -3,8 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using yandex_pract.MockDB;
-using yandex_pract.Services.BookingService.Models;
+using yandex_pract.CustomException;
 
 namespace yandex_pract.Services.BookingService;
 
@@ -20,22 +19,32 @@ public class BookingController : ControllerBase
 	}
 
 	[HttpPost("{eventId:guid}/book")]
+	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status409Conflict)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	public async Task<IActionResult> AddBooking(Guid eventId)
 	{
-		var (result, booking) = await bookingService.CreateBookingAsync(eventId);
-
-		if (!result)
-			return NotFound(new { Message = "Event not found" });
-
-		var location = $"/events/bookings/{booking.Id}";
-		Response.Headers.Append("Location", location);
-
-		return Accepted(new
+		try
 		{
-			booking.Id,
-			booking.EventId,
-			booking.Status
-		});
+			var (result, booking) = await bookingService.CreateBookingAsync(eventId);
+
+			if (!result)
+				return NotFound(new {Message = "Event not found"});
+
+			var location = $"/events/bookings/{booking.Id}";
+			Response.Headers.Append("Location", location);
+
+			return Accepted(new
+			{
+				booking.Id,
+				booking.EventId,
+				booking.Status
+			});
+		}
+		catch (NoAvailableSeatsException)
+		{
+			return Conflict(new {Message = "No available seats"});
+		}
 	}
 
 	[HttpGet("bookings/{bookingId:guid}")]

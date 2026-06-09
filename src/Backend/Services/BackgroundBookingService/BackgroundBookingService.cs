@@ -62,22 +62,27 @@ public class BackgroundBookingService : BackgroundService
 		{
 			booking.Reject();
 			_bookingDataBase.UpdateBooking(booking);
+			ReleaseSeats(booking);
 		}
 		catch (Exception)
 		{
 			booking.Reject();
 			_bookingDataBase.UpdateBooking(booking);
-
-			var (hasEvent, evt) = _eventDataBase.GetEventById(booking.EventId);
-			if (hasEvent)
-			{
-				evt.ReleaseSeats();
-				_eventDataBase.Update(evt);
-			}
+			ReleaseSeats(booking);
 		}
 		finally
 		{
 			_processingSemaphore.Release();
+		}
+	}
+
+	private void ReleaseSeats(Booking booking)
+	{
+		var (hasEvent, evt) = _eventDataBase.GetEventById(booking.EventId);
+		if (hasEvent)
+		{
+			evt.ReleaseSeats();
+			_eventDataBase.Update(evt);
 		}
 	}
 }
