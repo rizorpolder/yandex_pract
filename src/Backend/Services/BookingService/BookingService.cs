@@ -9,8 +9,8 @@ namespace yandex_pract.Services.BookingService;
 public class BookingService : IBookingService
 {
 	private readonly IBookingDataBase _bookingDataBase;
-	private readonly IEventDataBase _eventDataBase;
 	private readonly object _bookingLock = new();
+	private readonly IEventDataBase _eventDataBase;
 
 	public BookingService(IBookingDataBase bookingDataBase, IEventDataBase eventDataBase)
 	{
