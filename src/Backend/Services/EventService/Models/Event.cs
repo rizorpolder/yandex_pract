@@ -1,19 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
 using yandex_pract.CustomEventService.Dto;
+using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.CustomEventService.Models;
 
 public class Event : IEquatable<Event>
 {
-	public Guid Id = Guid.NewGuid();
-	public string Title;
-	public string Description;
-
-	public DateTime StartAt;
-	public DateTime EndAt;
+	public Guid Id { get; private set; } = Guid.NewGuid();
+	public string Title { get; private set; }
+	public string Description { get; private set; }
+	public DateTime StartAt { get; private set; }
+	public DateTime EndAt { get; private set; }
 
 	public int TotalSeats { get; private set; }
 	public int AvailableSeats { get; private set; }
+
+	public List<Booking> Bookings { get; set; }
+
+	private Event()
+	{
+	}
 
 	public Event(string title, string description, DateTime startAt, DateTime endAt, int totalSeats)
 	{

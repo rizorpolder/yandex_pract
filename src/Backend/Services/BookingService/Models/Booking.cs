@@ -1,4 +1,5 @@
 using System;
+using yandex_pract.CustomEventService.Models;
 
 namespace yandex_pract.Services.BookingService.Models;
 
@@ -9,6 +10,11 @@ public class Booking
 	public BookingStatus Status;
 	public DateTime CreatedAt;
 	public DateTime ProcessedAt;
+	public Event Event { get; set; }
+
+	private Booking()
+	{
+	}
 
 	public Booking(Guid eventId)
 	{
@@ -28,6 +34,5 @@ public class Booking
 	{
 		Status = BookingStatus.Rejected;
 		ProcessedAt = DateTime.UtcNow;
-
 	}
 }
