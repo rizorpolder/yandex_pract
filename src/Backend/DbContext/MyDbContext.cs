@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace yandex_pract.DbContext;
@@ -19,7 +21,11 @@ public class MyDbContext : Microsoft.EntityFrameworkCore.DbContext
 	{
 		builder.Entity<Product>()
 			.Property(p => p.Attributes)
-			.HasColumnType("jsonb");  // фильт по словарю 
+			.HasColumnType("jsonb") //EF не умеет мапить словарь, поэтому надо вручную указывать как его сериализовать для jsonb
+			.HasConversion(
+				v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
+				v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, (JsonSerializerOptions)null)
+			);
 		// Поиск товаров, у которых в JSONB-колонке указан конкретный бренд
 		// var products = await db.Products
 		// 	.Where(p => p.Attributes["Brand"] == "Samsung")
