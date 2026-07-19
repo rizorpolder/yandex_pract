@@ -2,73 +2,80 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using yandex_pract.MockDB;
+using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BackgroundBookingService;
 
 public class BackgroundBookingService : BackgroundService
 {
-	private readonly IBookingDataBase _bookingDataBase;
-	private readonly IEventDataBase _eventDataBase;
+	private readonly IServiceScopeFactory _scopeFactory;
 
 	private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
 
-	public BackgroundBookingService(
-		IBookingDataBase bookingDataBase,
-		IEventDataBase eventDataBase)
+	public BackgroundBookingService(IServiceScopeFactory scopeFactory)
 	{
-		_bookingDataBase = bookingDataBase;
-		_eventDataBase = eventDataBase;
+		_scopeFactory = scopeFactory;
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{
-			var pending = _bookingDataBase.GetPending().ToList();
+			using var scope = _scopeFactory.CreateScope();
+
+			var bookingDb = scope.ServiceProvider.GetRequiredService<IBookingDataBase>();
+			var eventDb = scope.ServiceProvider.GetRequiredService<IEventDataBase>();
+
+			var pending = await bookingDb.GetPendingAsync();
 			if (pending.Count == 0)
 			{
 				await Task.Delay(50, stoppingToken);
 				continue;
 			}
 
-			var tasks = pending.Select(b => ProcessBookingAsync(b, stoppingToken));
+			var tasks = pending.Select(b => ProcessBookingAsync(b, bookingDb, eventDb, stoppingToken));
 			await Task.WhenAll(tasks);
 		}
 	}
 
-	private async Task ProcessBookingAsync(Booking booking, CancellationToken stoppingToken)
+	private async Task ProcessBookingAsync(
+		Booking booking,
+		IBookingDataBase bookingDb,
+		IEventDataBase eventDb,
+		CancellationToken stoppingToken)
 	{
 		try
 		{
 			await Task.Delay(10, stoppingToken);
 			await _processingSemaphore.WaitAsync(stoppingToken);
-			var (hasEvent, evt) = _eventDataBase.GetEventById(booking.EventId);
+
+			var (hasEvent, evt) = await eventDb.GetEventByIdAsync(booking.EventId);
 
 			if (!hasEvent)
 			{
 				booking.Reject();
-				_bookingDataBase.UpdateBooking(booking);
+				await bookingDb.UpdateBookingAsync(booking);
 				return;
 			}
 
 			booking.Confirm();
-			_bookingDataBase.UpdateBooking(booking);
-			_eventDataBase.Update(evt);
+			await bookingDb.UpdateBookingAsync(booking);
+			await eventDb.UpdateAsync(evt);
 		}
 		catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
 		{
 			booking.Reject();
-			_bookingDataBase.UpdateBooking(booking);
-			ReleaseSeats(booking);
+			await bookingDb.UpdateBookingAsync(booking);
+			await ReleaseSeatsAsync(booking, eventDb);
 		}
 		catch (Exception)
 		{
 			booking.Reject();
-			_bookingDataBase.UpdateBooking(booking);
-			ReleaseSeats(booking);
+			await bookingDb.UpdateBookingAsync(booking);
+			await ReleaseSeatsAsync(booking, eventDb);
 		}
 		finally
 		{
@@ -76,13 +83,13 @@ public class BackgroundBookingService : BackgroundService
 		}
 	}
 
-	private void ReleaseSeats(Booking booking)
+	private async Task ReleaseSeatsAsync(Booking booking, IEventDataBase eventDb)
 	{
-		var (hasEvent, evt) = _eventDataBase.GetEventById(booking.EventId);
+		var (hasEvent, evt) = await eventDb.GetEventByIdAsync(booking.EventId);
 		if (hasEvent)
 		{
 			evt.ReleaseSeats();
-			_eventDataBase.Update(evt);
+			await eventDb.UpdateAsync(evt);
 		}
 	}
 }

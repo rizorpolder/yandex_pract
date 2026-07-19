@@ -1,6 +1,6 @@
 ﻿namespace TestProject.Fixture;
 
 [CollectionDefinition("ShareDBCollection")]
-public class ShareDBCollection : ICollectionFixture<TestDBFixture>
+public class ShareDBCollection : ICollectionFixture<TestDbFixture>
 {
 }

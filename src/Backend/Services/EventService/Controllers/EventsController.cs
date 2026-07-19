@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using yandex_pract.CustomEventService.Dto;
@@ -6,7 +7,8 @@ using yandex_pract.CustomEventService.Models;
 
 namespace yandex_pract.CustomEventService.Controllers;
 
-[ApiController] [Route("events")]
+[ApiController]
+[Route("events")]
 public class EventsController : ControllerBase
 {
 	private readonly IEventService _eventService;
@@ -17,49 +19,50 @@ public class EventsController : ControllerBase
 	}
 
 	[HttpGet]
-	public ActionResult<PaginatedResultDto> GetEvents(string? title, DateTime? from, DateTime? to,  int page = 1, int pageSize = 10)
+	public async Task<ActionResult<PaginatedResultDto>> GetEvents(string? title, DateTime? from, DateTime? to,
+		int page = 1,
+		int pageSize = 10)
 	{
-		var result = _eventService.GetEvents(title, from, to, page, pageSize);
+		var result = await _eventService.GetEvents(title, from, to, page, pageSize);
 		return new OkObjectResult(result);
 	}
 
 	[HttpGet("{id:guid}")]
-	public ActionResult<EventDto> GetEventById(Guid id)
+	public async Task<ActionResult<EventDto>> GetEventById(Guid id)
 	{
-		var result = _eventService.GetEventById(id);
+		var result = await _eventService.GetEventById(id);
 
 		if (result.hasElement)
 		{
 			return new OkObjectResult(new EventDto(result.resultModel));
 		}
 
-
 		return NotFound();
 	}
 
 	[HttpPost]
-	public ActionResult<EventDto> CreateNewEvent([FromBody] EventDto newEvent)
+	public async Task<ActionResult<EventDto>> CreateNewEvent([FromBody] EventDto newEvent)
 	{
 		if (!TryValidateModel(newEvent))
 			return BadRequest();
 
 		var model = new Event(newEvent);
-		
-		if (_eventService.CreateEventAsync(model))
-			return new OkObjectResult(new EventDto(model)) {StatusCode = StatusCodes.Status201Created};
-		
+		var createResult = await _eventService.CreateEventAsync(model);
+		if (createResult)
+			return new OkObjectResult(new EventDto(model)) { StatusCode = StatusCodes.Status201Created };
+
 		return BadRequest();
 	}
 
 	[HttpPut("{id:guid}")]
-	public ActionResult<EventDto> UpdateEventById(Guid id, [FromBody] EventDto eventDto)
+	public async Task<ActionResult<EventDto>> UpdateEventById(Guid id, [FromBody] EventDto eventDto)
 	{
 		if (!TryValidateModel(eventDto))
 			return BadRequest();
 
 		var newModel = new Event(eventDto);
 
-		var updateResult = _eventService.TryUpdateEvent(id, newModel);
+		var updateResult = await _eventService.TryUpdateEvent(id, newModel);
 		if (!updateResult.hasElement)
 			return NotFound();
 
@@ -67,13 +70,13 @@ public class EventsController : ControllerBase
 	}
 
 	[HttpDelete("{id:guid}")]
-	public IActionResult DeleteEventById(Guid id)
+	public async Task<IActionResult> DeleteEventById(Guid id)
 	{
-		var model = _eventService.GetEventById(id);
+		var model = await _eventService.GetEventById(id);
 		if (!model.hasElement)
 			return NotFound();
 
-		var isSuccess = _eventService.RemoveEvent(model.resultModel);
+		var isSuccess = await _eventService.RemoveEvent(model.resultModel);
 		if (isSuccess)
 			return Ok();
 

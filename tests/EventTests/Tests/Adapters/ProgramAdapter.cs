@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TestProject.Tests.Database;
 using yandex_pract.CustomEventService;
 using yandex_pract.CustomEventService.Controllers;
+using yandex_pract.DbContext;
+using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
-using yandex_pract.MockDB;
+using yandex_pract.Services.BackgroundBookingService;
+using yandex_pract.Services.BookingService;
 
 public class ProgramAdapter
 {
@@ -14,9 +17,18 @@ public class ProgramAdapter
 			.AddControllers()
 			.AddApplicationPart(typeof(EventsController).Assembly);
 
-		services.AddSingleton<IEventDataBase, TestDB>();
+		services.AddDbContext<AppDbContext>(options =>
+			options.UseInMemoryDatabase("AppDb"));
+
+		services.AddScoped<IEventDataBase, EfEventDataBase>();
+		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
+
 		services.AddScoped<EventFilterService>();
+
 		services.AddScoped<IEventService, EventService>();
+		services.AddScoped<IBookingService, BookingService>();
+
+		services.AddHostedService<BackgroundBookingService>();
 	}
 
 	public void Configure(IApplicationBuilder app)

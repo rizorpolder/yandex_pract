@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace yandex_pract.DbContext.Configurations;
 
-//Задание параметров через конфигурацию (PK, FK и тп)
-
 public class BookConfiguration : IEntityTypeConfiguration<Book>
 {
 	public void Configure(EntityTypeBuilder<Book> builder)

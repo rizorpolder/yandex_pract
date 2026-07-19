@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomException;
 using yandex_pract.DbContext;
-using yandex_pract.MockDB;
+using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BookingService;
@@ -28,14 +28,14 @@ public class BookingService : IBookingService
 		await _semaphore.WaitAsync();
 		try
 		{
-			var (hasEvent, eventData) = _eventDataBase.GetEventById(eventId);
+			var (hasEvent, eventData) = await _eventDataBase.GetEventByIdAsync(eventId);
 			if (!hasEvent)
 				return (false, null);
 
 			if (!eventData.TryReserveSeats())
 				throw new NoAvailableSeatsException("No available seats");
 
-			_eventDataBase.Update(eventData);
+			await _eventDataBase.UpdateAsync(eventData);
 
 			var booking = new Booking(eventId);
 
@@ -87,6 +87,4 @@ public class BookingService : IBookingService
 		_dbContext.Bookings.Update(booking);
 		await _dbContext.SaveChangesAsync();
 	}
-}
-
 }

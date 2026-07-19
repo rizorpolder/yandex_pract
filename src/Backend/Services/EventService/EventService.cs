@@ -1,20 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService.Dto;
 using yandex_pract.CustomEventService.Models;
 using yandex_pract.DbContext;
+using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
-using yandex_pract.MockDB;
 
 namespace yandex_pract.CustomEventService;
 
-public class EventService(AppDbContext dbContext, EventFilterService filterService) : IEventService
+public class EventService(IEventDataBase eventDataBase, EventFilterService filterService) : IEventService
 {
-	public IReadOnlyList<Event> GetEvents() => dbContext.Events.AsNoTracking().ToList();
+	public async Task<IReadOnlyList<Event>> GetEvents() => await eventDataBase.GetAllEventsAsync();
 
-	public PaginatedResultDto GetEvents(string? title, DateTime? from, DateTime? to, int page, int pageSize)
+	public async Task<PaginatedResultDto> GetEvents(string? title, DateTime? from, DateTime? to, int page, int pageSize)
 	{
 		var query = new EventQuery
 		{
@@ -25,7 +26,7 @@ public class EventService(AppDbContext dbContext, EventFilterService filterServi
 			PageSize = pageSize
 		};
 
-		var events = dbContext.Events.AsNoTracking();
+		var events = (await eventDataBase.GetAllEventsAsync()).AsQueryable();
 
 		events = filterService.ApplyFilters(events, query);
 
@@ -40,46 +41,34 @@ public class EventService(AppDbContext dbContext, EventFilterService filterServi
 		return new PaginatedResultDto(dtoList, page, totalCount);
 	}
 
-	public bool CreateEventAsync(Event customEvent)
+	public async Task<bool> CreateEventAsync(Event customEvent)
 	{
-		dbContext.Add(customEvent);
-		return dbContext.SaveChanges() > 0;
+		return await eventDataBase.TryAddEventAsync(customEvent);
 	}
 
-	public bool RemoveEvent(Event customEvent)
+	public async Task<bool> RemoveEvent(Event customEvent)
 	{
-		dbContext.Remove(customEvent);
-		return dbContext.SaveChanges() > 0;
+		return await eventDataBase.TryRemoveEventAsync(customEvent);
 	}
 
-	public (bool hasElement, Event? eventResult) TryUpdateEvent(Guid modelId, Event newEvent)
+	public async Task<(bool hasElement, Event? eventResult)> TryUpdateEvent(Guid modelId, Event newEvent)
 	{
-		var existing = dbContext.Events.FirstOrDefault(e => e.Id == modelId);
-
-		if (existing is null)
-			return (false, null);
-
-		existing.UpdateEvent(newEvent);
-
-		dbContext.SaveChanges();
-
-		return (true, existing);
+		return await eventDataBase.TryUpdateEventAsync(modelId, newEvent);
 	}
 
-	public (bool hasElement, Event? resultModel) GetEventById(Guid id)
+	public async Task<(bool hasElement, Event? resultModel)> GetEventById(Guid id)
 	{
-		var existing = dbContext.Events.FirstOrDefault(e => e.Id == id);
-		return (existing is not null, existing);
+		return await eventDataBase.GetEventByIdAsync(id);
 	}
 
-	public IReadOnlyList<Event> FilterEvents(
+	public async Task<IReadOnlyList<Event>> FilterEvents(
 		string? title = null,
 		DateTime? startDate = null,
 		DateTime? endDate = null,
 		int page = 1,
 		int pageSize = 10)
 	{
-		IQueryable<Event> events = dbContext.Events.AsNoTracking();
+		IQueryable<Event> events = (await eventDataBase.GetAllEventsAsync()).AsQueryable();
 
 		if (!string.IsNullOrWhiteSpace(title))
 			events = events.Where(e => e.Title.Contains(title));

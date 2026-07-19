@@ -8,15 +8,15 @@ public class FilterTests
 {
 	private readonly EventService _service;
 
-	public FilterTests(TestDBFixture fixture)
+	public FilterTests(TestDbFixture fixture)
 	{
 		_service = fixture.EventService;
 	}
 
 	[Fact]
-	public void TitleFilterTest()
+	public async Task TitleFilterTest()
 	{
-		var result = _service.GetEvents("meeting", null, null, 1, 10);
+		var result = await _service.GetEvents("meeting", null, null, 1, 10);
 
 		Assert.All(result.Data,
 			e =>
@@ -24,12 +24,12 @@ public class FilterTests
 	}
 
 	[Fact]
-	public void DateFilterTest()
+	public async Task DateFilterTest()
 	{
 		var from = new DateTime(2024, 1, 1);
 		var to = new DateTime(2024, 12, 31);
 
-		var result = _service.GetEvents(null, from, to, 1, 10);
+		var result =  await _service.GetEvents(null, from, to, 1, 10);
 
 		Assert.All(result.Data,
 			e =>
@@ -40,9 +40,9 @@ public class FilterTests
 	}
 
 	[Fact]
-	public void CombinedFilterTest()
+	public async Task CombinedFilterTest()
 	{
-		var result = _service.GetEvents("meeting",
+		var result = await _service.GetEvents("meeting",
 			new DateTime(2024, 1, 1),
 			new DateTime(2024, 12, 31),
 			1,

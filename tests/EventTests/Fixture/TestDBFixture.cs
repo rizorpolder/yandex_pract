@@ -1,23 +1,35 @@
-﻿using TestProject.Tests.Database;
+﻿using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
+using yandex_pract.DbContext;
+using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
 using yandex_pract.Services.BookingService;
 
 namespace TestProject.Fixture;
 
-public class TestDBFixture
+public class TestDbFixture
 {
+	public AppDbContext DbContext { get; }
+	public IEventDataBase EventDataBase { get; }
+	public IBookingDataBase BookingDataBase { get; }
+
 	public EventService EventService { get; }
 	public BookingService BookingService { get; }
-	public TestDB Database { get; }
 
-	private readonly TestDB _database = new TestDB();
-	private readonly EventFilterService _eventFilterService = new EventFilterService();
-
-	public TestDBFixture()
+	public TestDbFixture()
 	{
-		Database = new TestDB();
-		EventService = new EventService(_database, _eventFilterService);
-		BookingService = new BookingService(_database, _database);
+		var options = new DbContextOptionsBuilder<AppDbContext>()
+			.UseInMemoryDatabase(databaseName: "TestDb_" + Guid.NewGuid())
+			.Options;
+
+		DbContext = new AppDbContext(options);
+
+		EventDataBase = new EfEventDataBase(DbContext);
+		BookingDataBase = new EfBookingDataBase(DbContext);
+
+		var filterService = new EventFilterService();
+
+		EventService = new EventService(EventDataBase, filterService);
+		BookingService = new BookingService(DbContext, EventDataBase);
 	}
 }

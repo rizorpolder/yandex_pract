@@ -7,15 +7,15 @@ namespace EventTests.Tests;
 [Collection("ShareDBCollection")]
 public class CrudTests
 {
-	private readonly EventService _service;
+	private readonly IEventService _service;
 
-	public CrudTests(TestDBFixture fixture)
+	public CrudTests(TestDbFixture fixture)
 	{
 		_service = fixture.EventService;
 	}
 
 	[Fact]
-	public void CreateEventTest()
+	public async Task CreateEventTest()
 	{
 		var evt = new Event(
 			"testTitle",
@@ -23,11 +23,11 @@ public class CrudTests
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
 
-		var added = _service.CreateEventAsync(evt);
+		var added = await _service.CreateEventAsync(evt);
 
 		Assert.True(added);
 
-		var result = _service.GetEventById(evt.Id);
+		var result = await _service.GetEventById(evt.Id);
 		Assert.True(result.hasElement);
 		Assert.NotNull(result.resultModel);
 		Assert.Equal(evt.Title, result.resultModel!.Title);
@@ -35,22 +35,31 @@ public class CrudTests
 	}
 
 	[Fact]
-	public void GetAllEventsTest()
+	public async Task GetAllEventsTest()
 	{
-		var events = _service.GetEvents();
+		var evt1 = new Event("A", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
+		var evt2 = new Event("B", "desc", DateTime.Now, DateTime.Now.AddMinutes(2), 5);
 
-		Assert.NotNull(events);
-		Assert.True(events.Count > 0);
+		await _service.CreateEventAsync(evt1);
+		await _service.CreateEventAsync(evt2);
+
+		var result = await _service.GetEvents(null, null, null, 1, 10);
+
+
+		Assert.NotNull(result);
+		Assert.Equal(2, result.Data.Count);
+		Assert.Contains(result.Data, e => e.Title == "A");
+		Assert.Contains(result.Data, e => e.Title == "B");
 	}
 
 	[Fact]
-	public void GetEventByID()
+	public async Task GetEventByID()
 	{
 		var testEvt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var added = _service.CreateEventAsync(testEvt);
+		var added = await _service.CreateEventAsync(testEvt);
 		Assert.True(added);
 
-		var evt = _service.GetEventById(testEvt.Id);
+		var evt = await _service.GetEventById(testEvt.Id);
 
 		Assert.True(evt.hasElement);
 		Assert.NotNull(evt.resultModel);
@@ -58,18 +67,18 @@ public class CrudTests
 	}
 
 	[Fact]
-	public void GetEventByIncorrectID()
+	public async Task GetEventByIncorrectID()
 	{
 		var id = Guid.NewGuid();
 
-		var evt = _service.GetEventById(id);
+		var evt = await _service.GetEventById(id);
 
 		Assert.False(evt.hasElement);
 		Assert.Null(evt.resultModel);
 	}
 
 	[Fact]
-	public void UpdateEventTest()
+	public async Task UpdateEventTest()
 	{
 		var evt = new Event(
 			"oldTitle",
@@ -77,7 +86,7 @@ public class CrudTests
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
 
-		_service.CreateEventAsync(evt);
+		await _service.CreateEventAsync(evt);
 
 		var updated = new Event(
 			"newTitle",
@@ -85,7 +94,7 @@ public class CrudTests
 			DateTime.Now,
 			DateTime.Now.AddSeconds(20), 3);
 
-		var result = _service.TryUpdateEvent(evt.Id, updated);
+		var result = await _service.TryUpdateEvent(evt.Id, updated);
 
 		Assert.True(result.hasElement);
 		Assert.NotNull(result.eventResult);
@@ -94,7 +103,7 @@ public class CrudTests
 	}
 
 	[Fact]
-	public void UpdateBrokenIDEventTest()
+	public async Task UpdateBrokenIDEventTest()
 	{
 		var evt = new Event(
 			"title",
@@ -102,24 +111,24 @@ public class CrudTests
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
 
-		var result = _service.TryUpdateEvent(Guid.NewGuid(), evt);
+		var result = await _service.TryUpdateEvent(Guid.NewGuid(), evt);
 
 		Assert.False(result.hasElement);
 		Assert.Null(result.eventResult);
 	}
 
 	[Fact]
-	public void DeleteEventTest()
+	public async Task DeleteEventTest()
 	{
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 
-		_service.CreateEventAsync(evt);
+		await _service.CreateEventAsync(evt);
 
-		var removed = _service.RemoveEvent(evt);
+		var removed = await _service.RemoveEvent(evt);
 
 		Assert.True(removed);
 
-		var result = _service.GetEventById(evt.Id);
+		var result = await _service.GetEventById(evt.Id);
 		Assert.False(result.hasElement);
 		Assert.Null(result.resultModel);
 	}

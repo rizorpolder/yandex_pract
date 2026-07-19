@@ -1,15 +1,13 @@
-using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using yandex_pract.CustomEventService;
 using yandex_pract.DbContext;
+using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
 using yandex_pract.Middleware;
-using yandex_pract.MockDB;
 using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
 
@@ -30,16 +28,15 @@ public class Program
 	{
 		services.AddControllers();
 
-		services.AddSingleton<MockDb>();
-		services.AddSingleton<IEventDataBase>(sp => sp.GetRequiredService<MockDb>());
-		services.AddSingleton<IBookingDataBase>(sp => sp.GetRequiredService<MockDb>());
-
-		services.AddSingleton<IBookingService, BookingService>();
+		services.AddScoped<IEventDataBase, EfEventDataBase>();
+		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
 
 		services.AddScoped<EventFilterService>();
+
+
+		services.AddSingleton<IBookingService, BookingService>();
 		services.AddScoped<IEventService, EventService>();
 
-		//booking
 		services.AddHostedService<BackgroundBookingService>();
 
 		services.AddSwaggerGen();
@@ -63,8 +60,10 @@ public class Program
 	public static void Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder(args);
+
 		ConfigureServices(builder.Services);
 		ConfigureServerPart(builder);
+
 		var app = builder.Build();
 		Configure(app);
 
