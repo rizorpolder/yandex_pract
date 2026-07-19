@@ -41,7 +41,7 @@ public class BookingService : IBookingService
 
 			_dbContext.Bookings.Add(booking);
 			await _dbContext.SaveChangesAsync();
-
+			_dbContext.Entry(booking).State = EntityState.Detached;
 			return (true, booking);
 		}
 		finally
@@ -52,7 +52,7 @@ public class BookingService : IBookingService
 
 	public async Task<(bool haveBooking, Booking booking)> GetBookingByIdAsync(Guid bookingId)
 	{
-		var booking = await _dbContext.Bookings
+		var booking = await _dbContext.Bookings.AsNoTracking()
 			.FirstOrDefaultAsync(b => b.Id == bookingId);
 
 		return (booking != null, booking);

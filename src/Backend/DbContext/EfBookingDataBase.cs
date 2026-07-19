@@ -21,22 +21,28 @@ public class EfBookingDataBase : IBookingDataBase
 	{
 		_dbContext.Bookings.Add(booking);
 		await _dbContext.SaveChangesAsync();
+		_dbContext.Entry(booking).State = EntityState.Detached;
 	}
 
 	public async Task<(bool found, Booking booking)> TryFindBookingAsync(Guid bookingId)
 	{
-		var booking = await _dbContext.Bookings.FirstOrDefaultAsync(x => x.Id.Equals(bookingId));
+		var booking = await _dbContext.Bookings.AsNoTracking().FirstOrDefaultAsync(x => x.Id.Equals(bookingId));
 		return (booking != null, booking);
 	}
 
 	public async Task<List<Booking>> GetPendingAsync()
 	{
-		return await _dbContext.Bookings.Where(x => x.Status.Equals(BookingStatus.Pending)).ToListAsync();
+		return await _dbContext.Bookings.AsNoTracking().Where(x => x.Status.Equals(BookingStatus.Pending))
+			.ToListAsync();
 	}
 
 	public async Task UpdateBookingAsync(Booking booking)
 	{
-		_dbContext.Bookings.Update(booking);
+		var existing = await _dbContext.Bookings.FindAsync(booking.Id);
+		if (existing is null) return;
+
+		_dbContext.Entry(existing).CurrentValues.SetValues(booking);
 		await _dbContext.SaveChangesAsync();
+		_dbContext.Entry(existing).State = EntityState.Detached;
 	}
 }

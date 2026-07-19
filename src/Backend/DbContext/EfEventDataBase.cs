@@ -24,12 +24,14 @@ public class EfEventDataBase : IEventDataBase
 	public async Task<bool> TryAddEventAsync(Event customEvent)
 	{
 		_dbContext.Events.Add(customEvent);
-		return await _dbContext.SaveChangesAsync() > 0;
+		var result = await _dbContext.SaveChangesAsync() > 0;
+		_dbContext.Entry(customEvent).State = EntityState.Detached;
+		return result;
 	}
 
 	public async Task<bool> TryRemoveEventAsync(Event customEvent)
 	{
-		var existing = await _dbContext.Events.FirstOrDefaultAsync(e => e.Id == customEvent.Id);
+		var existing = await _dbContext.Events.FindAsync(customEvent.Id);
 		if (existing is null) return false;
 
 		_dbContext.Events.Remove(existing);
@@ -38,8 +40,7 @@ public class EfEventDataBase : IEventDataBase
 
 	public async Task<(bool hasElement, Event? eventResult)> TryUpdateEventAsync(Guid modelId, Event newEvent)
 	{
-		var existing = await _dbContext.Events
-			.FirstOrDefaultAsync(e => e.Id == modelId);
+		var existing = await _dbContext.Events.FindAsync(modelId);
 
 		if (existing is null)
 			return (false, null);
@@ -47,6 +48,7 @@ public class EfEventDataBase : IEventDataBase
 		existing.UpdateEvent(newEvent);
 
 		await _dbContext.SaveChangesAsync();
+		_dbContext.Entry(existing).State = EntityState.Detached;
 
 		return (true, existing);
 	}
@@ -62,7 +64,12 @@ public class EfEventDataBase : IEventDataBase
 
 	public async Task UpdateAsync(Event evt)
 	{
-		_dbContext.Events.Update(evt);
+		var existing = await _dbContext.Events.FindAsync(evt.Id);
+		if (existing is null) return;
+
+		_dbContext.Entry(existing).CurrentValues.SetValues(evt);
+		_dbContext.Update(existing);
 		await _dbContext.SaveChangesAsync();
+		_dbContext.Entry(existing).State = EntityState.Detached;
 	}
 }

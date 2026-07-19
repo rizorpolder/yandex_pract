@@ -10,6 +10,7 @@ using yandex_pract.Filters;
 using yandex_pract.Middleware;
 using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
+using yandex_pract.Services.Endpoints;
 
 public class Program
 {
@@ -54,7 +55,15 @@ public class Program
 
 		app.UseHttpsRedirection();
 		app.UseRouting();
+
+		using (var scope = app.Services.CreateScope())
+		{
+			var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+			db.Database.EnsureCreated();
+		}
+
 		app.MapControllers();
+		//app.MapEventsEndpoints(); - так тоже можно мапить эндпойнты
 	}
 
 	public static void Main(string[] args)

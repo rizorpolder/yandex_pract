@@ -10,7 +10,7 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
 	{
 		builder.ToTable("events");
 		builder.HasKey(e => e.Id);
-		builder.Property(p => p.Id).ValueGeneratedNever();
+		builder.Property(p => p.Id).HasColumnName("id").ValueGeneratedNever();
 		builder.Property(e => e.Title).HasMaxLength(255).IsRequired();
 		builder.Property(e => e.Description).HasMaxLength(255).IsRequired(false);
 		builder.HasMany(e => e.Bookings)

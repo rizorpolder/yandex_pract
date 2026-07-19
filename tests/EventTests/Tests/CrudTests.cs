@@ -1,33 +1,63 @@
-﻿using TestProject.Fixture;
+﻿using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
 using yandex_pract.CustomEventService.Models;
+using yandex_pract.DbContext;
+using yandex_pract.Filters;
+using yandex_pract.Services.BookingService;
 
 namespace EventTests.Tests;
 
-[Collection("ShareDBCollection")]
 public class CrudTests
 {
-	private readonly IEventService _service;
-
-	public CrudTests(TestDbFixture fixture)
+	private AppDbContext CreateDb()
 	{
-		_service = fixture.EventService;
+		var options = new DbContextOptionsBuilder<AppDbContext>()
+			.UseInMemoryDatabase(Guid.NewGuid().ToString())
+			.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+			.Options;
+
+		return new AppDbContext(options);
+	}
+
+	private (AppDbContext db,
+		IEventService eventService,
+		IBookingService bookingService) CreateServices()
+	{
+		var db = CreateDb();
+
+		var eventDb = new EfEventDataBase(db);
+		var bookingDb = new EfBookingDataBase(db);
+
+		var filter = new EventFilterService();
+
+		var eventService = new EventService(eventDb, filter);
+		var bookingService = new BookingService(db, eventDb);
+
+		return (db, eventService, bookingService);
+	}
+
+	private void Cleanup(AppDbContext db)
+	{
+		db.Events.RemoveRange(db.Events);
+		db.Bookings.RemoveRange(db.Bookings);
+		db.SaveChanges();
 	}
 
 	[Fact]
 	public async Task CreateEventTest()
 	{
+		var (db, eventService, bookingService) = CreateServices();
 		var evt = new Event(
 			"testTitle",
 			"testDescription",
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
 
-		var added = await _service.CreateEventAsync(evt);
+		var added = await eventService.CreateEventAsync(evt);
 
 		Assert.True(added);
 
-		var result = await _service.GetEventById(evt.Id);
+		var result = await eventService.GetEventById(evt.Id);
 		Assert.True(result.hasElement);
 		Assert.NotNull(result.resultModel);
 		Assert.Equal(evt.Title, result.resultModel!.Title);
@@ -37,13 +67,15 @@ public class CrudTests
 	[Fact]
 	public async Task GetAllEventsTest()
 	{
+		var (db, eventService, bookingService) = CreateServices();
+
 		var evt1 = new Event("A", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
 		var evt2 = new Event("B", "desc", DateTime.Now, DateTime.Now.AddMinutes(2), 5);
 
-		await _service.CreateEventAsync(evt1);
-		await _service.CreateEventAsync(evt2);
+		await eventService.CreateEventAsync(evt1);
+		await eventService.CreateEventAsync(evt2);
 
-		var result = await _service.GetEvents(null, null, null, 1, 10);
+		var result = await eventService.GetEvents(null, null, null, 1, 10);
 
 
 		Assert.NotNull(result);
@@ -55,11 +87,13 @@ public class CrudTests
 	[Fact]
 	public async Task GetEventByID()
 	{
+		var (db, eventService, bookingService) = CreateServices();
+
 		var testEvt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var added = await _service.CreateEventAsync(testEvt);
+		var added = await eventService.CreateEventAsync(testEvt);
 		Assert.True(added);
 
-		var evt = await _service.GetEventById(testEvt.Id);
+		var evt = await eventService.GetEventById(testEvt.Id);
 
 		Assert.True(evt.hasElement);
 		Assert.NotNull(evt.resultModel);
@@ -69,9 +103,11 @@ public class CrudTests
 	[Fact]
 	public async Task GetEventByIncorrectID()
 	{
+		var (db, eventService, bookingService) = CreateServices();
+
 		var id = Guid.NewGuid();
 
-		var evt = await _service.GetEventById(id);
+		var evt = await eventService.GetEventById(id);
 
 		Assert.False(evt.hasElement);
 		Assert.Null(evt.resultModel);
@@ -80,13 +116,15 @@ public class CrudTests
 	[Fact]
 	public async Task UpdateEventTest()
 	{
+		var (db, eventService, bookingService) = CreateServices();
+
 		var evt = new Event(
 			"oldTitle",
 			"oldDescription",
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
 
-		await _service.CreateEventAsync(evt);
+		await eventService.CreateEventAsync(evt);
 
 		var updated = new Event(
 			"newTitle",
@@ -94,7 +132,7 @@ public class CrudTests
 			DateTime.Now,
 			DateTime.Now.AddSeconds(20), 3);
 
-		var result = await _service.TryUpdateEvent(evt.Id, updated);
+		var result = await eventService.TryUpdateEvent(evt.Id, updated);
 
 		Assert.True(result.hasElement);
 		Assert.NotNull(result.eventResult);
@@ -105,13 +143,15 @@ public class CrudTests
 	[Fact]
 	public async Task UpdateBrokenIDEventTest()
 	{
+		var (db, eventService, bookingService) = CreateServices();
+
 		var evt = new Event(
 			"title",
 			"desc",
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
 
-		var result = await _service.TryUpdateEvent(Guid.NewGuid(), evt);
+		var result = await eventService.TryUpdateEvent(Guid.NewGuid(), evt);
 
 		Assert.False(result.hasElement);
 		Assert.Null(result.eventResult);
@@ -120,15 +160,17 @@ public class CrudTests
 	[Fact]
 	public async Task DeleteEventTest()
 	{
+		var (db, eventService, bookingService) = CreateServices();
+
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 
-		await _service.CreateEventAsync(evt);
-
-		var removed = await _service.RemoveEvent(evt);
+		await eventService.CreateEventAsync(evt);
+		
+		var removed = await eventService.RemoveEvent(evt);
 
 		Assert.True(removed);
 
-		var result = await _service.GetEventById(evt.Id);
+		var result = await eventService.GetEventById(evt.Id);
 		Assert.False(result.hasElement);
 		Assert.Null(result.resultModel);
 	}
