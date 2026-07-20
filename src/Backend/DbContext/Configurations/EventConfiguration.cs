@@ -11,8 +11,10 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
 		builder.ToTable("events");
 		builder.HasKey(e => e.Id);
 		builder.Property(p => p.Id).HasColumnName("id").ValueGeneratedNever();
-		builder.Property(e => e.Title).HasMaxLength(255).IsRequired();
+		builder.Property(e => e.Title).HasColumnName("title").HasMaxLength(255).IsRequired();
 		builder.Property(e => e.Description).HasMaxLength(255).IsRequired(false);
+		builder.Property(e => e.AvailableSeats).HasColumnName("available_seats").IsRequired();
+		builder.Property(e => e.TotalSeats).HasColumnName("total_seats").IsRequired();
 		builder.HasMany(e => e.Bookings)
 			.WithOne(b => b.Event)
 			.HasForeignKey(b => b.EventId);

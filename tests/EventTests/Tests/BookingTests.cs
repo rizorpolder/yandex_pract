@@ -161,16 +161,16 @@ public class BookingTests
 		services.AddScoped<IEventDataBase, EfEventDataBase>();
 		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
 
-		services.AddScoped<EventService>();
-		services.AddScoped<BookingService>();
+		services.AddScoped<IEventService, EventService>();
+		services.AddScoped<IBookingService, BookingService>();
 
 		services.AddSingleton<IServiceScopeFactory>(sp => sp.GetRequiredService<IServiceScopeFactory>());
 
 		var provider = services.BuildServiceProvider();
 
 		var db = provider.GetRequiredService<AppDbContext>();
-		var eventService = provider.GetRequiredService<EventService>();
-		var bookingService = provider.GetRequiredService<BookingService>();
+		var eventService = provider.GetRequiredService<IEventService>();
+		var bookingService = provider.GetRequiredService<IBookingService>();
 		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
