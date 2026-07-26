@@ -5,9 +5,9 @@ using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.DbContext.Interfaces;
 
-public interface IBookingDataBase
+public interface IBookingRepository
 {
-	Task EnqueueAsync(Booking booking);
+	Task<bool> EnqueueAsync(Booking booking);
 
 	Task<(bool found, Booking booking)> TryFindBookingAsync(Guid bookingId);
 

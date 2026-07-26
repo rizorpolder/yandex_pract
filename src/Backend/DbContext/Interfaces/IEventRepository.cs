@@ -5,7 +5,7 @@ using yandex_pract.CustomEventService.Models;
 
 namespace yandex_pract.DbContext.Interfaces;
 
-public interface IEventDataBase
+public interface IEventRepository
 {
 	public Task<IReadOnlyList<Event>> GetAllEventsAsync();
 	public Task<bool> TryAddEventAsync(Event customEvent);

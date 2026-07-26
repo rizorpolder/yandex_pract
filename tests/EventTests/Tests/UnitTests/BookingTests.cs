@@ -31,13 +31,13 @@ public class BookingTests
 	{
 		var db = CreateDb();
 
-		var eventDb = new EfEventDataBase(db);
-		var bookingDb = new EfBookingDataBase(db);
+		var eventDb = new EfEventRepository(db);
+		var bookingDb = new EfBookingRepository(db);
 
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventDb, filter);
-		var bookingService = new BookingService(db, eventDb);
+		var bookingService = new BookingService(bookingDb, eventDb);
 
 		return (db, eventService, bookingService);
 	}
@@ -160,8 +160,8 @@ public class BookingTests
 		services.AddDbContext<AppDbContext>(options =>
 			options.UseInMemoryDatabase(dbName));
 
-		services.AddScoped<IEventDataBase, EfEventDataBase>();
-		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
+		services.AddScoped<IEventRepository, EfEventRepository>();
+		services.AddScoped<IBookingRepository, EfBookingRepository>();
 		services.AddScoped<EventFilterService>();
 
 		services.AddScoped<IEventService, EventService>();

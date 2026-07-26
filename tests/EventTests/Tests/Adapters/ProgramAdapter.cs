@@ -20,8 +20,8 @@ public class ProgramAdapter
 		services.AddDbContext<AppDbContext>(options =>
 			options.UseInMemoryDatabase("AppDb"));
 
-		services.AddScoped<IEventDataBase, EfEventDataBase>();
-		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
+		services.AddScoped<IEventRepository, EfEventRepository>();
+		services.AddScoped<IBookingRepository, EfBookingRepository>();
 
 		services.AddScoped<EventFilterService>();
 

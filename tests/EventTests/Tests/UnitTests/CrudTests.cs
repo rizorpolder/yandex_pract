@@ -25,13 +25,13 @@ public class CrudTests
 	{
 		var db = CreateDb();
 
-		var eventDb = new EfEventDataBase(db);
-		var bookingDb = new EfBookingDataBase(db);
+		var eventDb = new EfEventRepository(db);
+		var bookingDb = new EfBookingRepository(db);
 
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventDb, filter);
-		var bookingService = new BookingService(db, eventDb);
+		var bookingService = new BookingService(bookingDb, eventDb);
 
 		return (db, eventService, bookingService);
 	}

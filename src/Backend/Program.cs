@@ -30,8 +30,8 @@ public class Program
 	{
 		services.AddControllers();
 
-		services.AddScoped<IEventDataBase, EfEventDataBase>();
-		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
+		services.AddScoped<IEventRepository, EfEventRepository>();
+		services.AddScoped<IBookingRepository, EfBookingRepository>();
 
 		services.AddScoped<EventFilterService>();
 
@@ -57,6 +57,7 @@ public class Program
 			app.UseSwagger();
 			app.UseSwaggerUI();
 		}
+		
 
 		app.UseHttpsRedirection();
 		app.UseRouting();
@@ -64,7 +65,7 @@ public class Program
 		using (var scope = app.Services.CreateScope())
 		{
 			var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-			db.Database.EnsureCreated();
+			db.Database.Migrate();
 		}
 
 		app.MapControllers();

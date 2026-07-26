@@ -8,22 +8,25 @@ using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.DbContext;
 
-public class EfBookingDataBase : IBookingDataBase
+public class EfBookingRepository : IBookingRepository
 {
 	private readonly AppDbContext _dbContext;
 
-	public EfBookingDataBase(AppDbContext dbContext)
+	public EfBookingRepository(AppDbContext dbContext)
 	{
 		_dbContext = dbContext;
 	}
 
-	public async Task EnqueueAsync(Booking booking)
+	public async Task<bool> EnqueueAsync(Booking booking)
 	{
+		bool isSuccess = false;
 		_dbContext.Bookings.Add(booking);
-		await _dbContext.SaveChangesAsync();
+		isSuccess = await _dbContext.SaveChangesAsync() > 0;
 		_dbContext.Entry(booking).State = EntityState.Detached;
+		return isSuccess;
 	}
-
+	
+	
 	public async Task<(bool found, Booking booking)> TryFindBookingAsync(Guid bookingId)
 	{
 		var booking = await _dbContext.Bookings.AsNoTracking().FirstOrDefaultAsync(x => x.Id.Equals(bookingId));

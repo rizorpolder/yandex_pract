@@ -7,11 +7,11 @@ using yandex_pract.DbContext.Interfaces;
 
 namespace yandex_pract.DbContext;
 
-public class EfEventDataBase : IEventDataBase
+public class EfEventRepository : IEventRepository
 {
 	private readonly AppDbContext _dbContext;
 
-	public EfEventDataBase(AppDbContext dbContext)
+	public EfEventRepository(AppDbContext dbContext)
 	{
 		_dbContext = dbContext;
 	}
