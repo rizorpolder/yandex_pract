@@ -51,9 +51,9 @@ public class EventService(IEventDataBase eventDataBase, EventFilterService filte
 		return await eventDataBase.TryRemoveEventAsync(customEvent);
 	}
 
-	public async Task<(bool hasElement, Event? eventResult)> TryUpdateEvent(Guid modelId, Event newEvent)
+	public async Task<bool> TryUpdateEvent(Event newEvent)
 	{
-		return await eventDataBase.TryUpdateEventAsync(modelId, newEvent);
+		return await eventDataBase.UpdateAsync(newEvent);
 	}
 
 	public async Task<(bool hasElement, Event? resultModel)> GetEventById(Guid id)

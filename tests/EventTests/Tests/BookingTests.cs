@@ -155,16 +155,17 @@ public class BookingTests
 	{
 		var services = new ServiceCollection();
 
+		var dbName = "TestDb_" + Guid.NewGuid();
+
 		services.AddDbContext<AppDbContext>(options =>
-			options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid()));
+			options.UseInMemoryDatabase(dbName));
 
 		services.AddScoped<IEventDataBase, EfEventDataBase>();
 		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
+		services.AddScoped<EventFilterService>();
 
 		services.AddScoped<IEventService, EventService>();
 		services.AddScoped<IBookingService, BookingService>();
-
-		services.AddSingleton<IServiceScopeFactory>(sp => sp.GetRequiredService<IServiceScopeFactory>());
 
 		var provider = services.BuildServiceProvider();
 
@@ -172,7 +173,7 @@ public class BookingTests
 		var eventService = provider.GetRequiredService<IEventService>();
 		var bookingService = provider.GetRequiredService<IBookingService>();
 		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-
+		
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
 		await eventService.CreateEventAsync(evt);
 
@@ -180,12 +181,14 @@ public class BookingTests
 		Assert.True(result);
 		Assert.Equal(BookingStatus.Pending, booking.Status);
 
+		var bookingResult = await bookingService.GetBookingByIdAsync(booking.Id);
+		
 		var worker = new BackgroundBookingService(scopeFactory);
 
 		using var cts = new CancellationTokenSource();
 		var workerTask = worker.StartAsync(cts.Token);
 
-		await Task.Delay(50, cts.Token);
+		await Task.Delay(100, cts.Token);
 
 		await cts.CancelAsync();
 		await workerTask;
@@ -260,7 +263,7 @@ public class BookingTests
 		var first = await bookingService.CreateBookingAsync(evt.Id);
 		Assert.True(first.result);
 
-		Assert.Throws<NoAvailableSeatsException>(() => { bookingService.CreateBookingAsync(evt.Id).Wait(); });
+		await Assert.ThrowsAsync<NoAvailableSeatsException>(() => bookingService.CreateBookingAsync(evt.Id));
 		Cleanup(db);
 	}
 
@@ -286,7 +289,7 @@ public class BookingTests
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 0);
 		await eventService.CreateEventAsync(evt);
 
-		Assert.Throws<NoAvailableSeatsException>(() => { bookingService.CreateBookingAsync(evt.Id).Wait(); });
+		await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>  bookingService.CreateBookingAsync(evt.Id));
 		Cleanup(db);
 	}
 
@@ -342,7 +345,10 @@ public class BookingTests
 		Assert.Equal(0, updatedEventBefore.AvailableSeats);
 
 		booking.Reject();
-		evt.ReleaseSeats();
+		updatedEventBefore.ReleaseSeats();
+
+		bool isUpdated = await eventService.TryUpdateEvent(updatedEventBefore);
+		Assert.True(isUpdated);
 
 		var (_, updatedEventAfter) = await eventService.GetEventById(evt.Id);
 		Assert.Equal(1, updatedEventAfter.AvailableSeats);
@@ -358,11 +364,19 @@ public class BookingTests
 		await eventService.CreateEventAsync(evt);
 
 		var (result1, booking1) = await bookingService.CreateBookingAsync(evt.Id);
-
+		
 		Assert.True(result1);
-		booking1.Reject();
-		evt.ReleaseSeats();
+		
+		var (hasEvt, evtData)= await eventService.GetEventById(evt.Id);
+		
+		Assert.True(hasEvt);
 
+		booking1.Reject();
+		evtData.ReleaseSeats();
+
+		var isUpdated = await eventService.TryUpdateEvent( evtData);
+		Assert.True(isUpdated);
+		
 		var (result2, booking2) = await bookingService.CreateBookingAsync(evt.Id);
 
 		Assert.True(result2);

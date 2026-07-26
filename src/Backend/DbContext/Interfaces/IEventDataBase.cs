@@ -14,5 +14,5 @@ public interface IEventDataBase
 
 	public Task<(bool hasElement, Event? resultModel)> GetEventByIdAsync(Guid eventId);
 
-	Task UpdateAsync(Event evt);
+	public Task<bool> UpdateAsync(Event evt);
 }

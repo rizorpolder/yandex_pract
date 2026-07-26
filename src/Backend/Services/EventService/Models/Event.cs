@@ -82,6 +82,8 @@ public class Event : IEquatable<Event>
 		Description = customEvent.Description;
 		StartAt = customEvent.StartAt;
 		EndAt = customEvent.EndAt;
+		AvailableSeats = customEvent.AvailableSeats;
+		TotalSeats = customEvent.TotalSeats;
 	}
 
 	public bool TryReserveSeats(int count = 1)

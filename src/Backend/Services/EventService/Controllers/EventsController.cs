@@ -19,7 +19,9 @@ public class EventsController : ControllerBase
 	}
 
 	[HttpGet]
-	public async Task<ActionResult<PaginatedResultDto>> GetEvents(string? title, DateTime? from, DateTime? to,
+	public async Task<ActionResult<PaginatedResultDto>> GetEvents(string? title,
+		DateTime? from,
+		DateTime? to,
 		int page = 1,
 		int pageSize = 10)
 	{
@@ -49,7 +51,7 @@ public class EventsController : ControllerBase
 		var model = new Event(newEvent);
 		var createResult = await _eventService.CreateEventAsync(model);
 		if (createResult)
-			return new OkObjectResult(new EventDto(model)) { StatusCode = StatusCodes.Status201Created };
+			return new OkObjectResult(new EventDto(model)) {StatusCode = StatusCodes.Status201Created};
 
 		return BadRequest();
 	}
@@ -61,12 +63,16 @@ public class EventsController : ControllerBase
 			return BadRequest();
 
 		var newModel = new Event(eventDto);
-
-		var updateResult = await _eventService.TryUpdateEvent(id, newModel);
-		if (!updateResult.hasElement)
+		var (hasElement, eventData) = await _eventService.GetEventById(id);
+		if (!hasElement)
 			return NotFound();
 
-		return new OkObjectResult(new EventDto(updateResult.eventResult));
+		eventData.UpdateEvent(newModel);
+		var updateResult = await _eventService.TryUpdateEvent(eventData);
+		if (!updateResult)
+			return NotFound();
+
+		return new OkObjectResult(new EventDto(eventData));
 	}
 
 	[HttpDelete("{id:guid}")]

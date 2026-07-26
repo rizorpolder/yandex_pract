@@ -16,7 +16,7 @@ public class Program
 {
 	private static void ConfigureServerPart(WebApplicationBuilder builderServices)
 	{
-		var connectionString = builderServices.Configuration.GetConnectionString("Default");
+		var connectionString = builderServices.Configuration.GetConnectionString("DefaultConnection");
 		builderServices.Services.AddDbContext<AppDbContext>(options =>
 				options.UseNpgsql(connectionString)
 			// .LogTo(Console.WriteLine, LogLevel.Information)   // Лог SQL запросов
@@ -35,7 +35,7 @@ public class Program
 		services.AddScoped<EventFilterService>();
 
 
-		services.AddSingleton<IBookingService, BookingService>();
+		services.AddScoped<IBookingService, BookingService>();
 		services.AddScoped<IEventService, EventService>();
 
 		services.AddHostedService<BackgroundBookingService>();

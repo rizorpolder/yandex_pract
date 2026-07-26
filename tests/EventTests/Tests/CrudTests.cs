@@ -131,13 +131,16 @@ public class CrudTests
 			"newDescription",
 			DateTime.Now,
 			DateTime.Now.AddSeconds(20), 3);
-
-		var result = await eventService.TryUpdateEvent(evt.Id, updated);
-
-		Assert.True(result.hasElement);
-		Assert.NotNull(result.eventResult);
-		Assert.Equal("newTitle", result.eventResult!.Title);
-		Assert.Equal("newDescription", result.eventResult.Description);
+		updated.SetGuid(evt.Id);
+		
+		var result = await eventService.TryUpdateEvent(updated);
+		Assert.True(result);
+		
+		var (hasElement, eventData) = await eventService.GetEventById(evt.Id);
+		Assert.True(hasElement);
+		Assert.NotNull(eventData);
+		Assert.Equal("newTitle", eventData.Title);
+		Assert.Equal("newDescription", eventData.Description);
 	}
 
 	[Fact]
@@ -150,11 +153,9 @@ public class CrudTests
 			"desc",
 			DateTime.Now,
 			DateTime.Now.AddSeconds(10), 3);
-
-		var result = await eventService.TryUpdateEvent(Guid.NewGuid(), evt);
-
-		Assert.False(result.hasElement);
-		Assert.Null(result.eventResult);
+		evt.SetGuid(Guid.NewGuid());
+		var result = await eventService.TryUpdateEvent( evt);
+		Assert.False(result);
 	}
 
 	[Fact]

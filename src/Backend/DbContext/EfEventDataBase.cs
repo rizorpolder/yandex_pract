@@ -62,14 +62,18 @@ public class EfEventDataBase : IEventDataBase
 		return (element != null, element);
 	}
 
-	public async Task UpdateAsync(Event evt)
+	public async Task<bool> UpdateAsync(Event evt)
 	{
+		bool isUpdated = false;
+
 		var existing = await _dbContext.Events.FindAsync(evt.Id);
-		if (existing is null) return;
+		if (existing is null) return isUpdated;
+
 
 		_dbContext.Entry(existing).CurrentValues.SetValues(evt);
 		_dbContext.Update(existing);
-		await _dbContext.SaveChangesAsync();
+		isUpdated = await _dbContext.SaveChangesAsync() > 0;
 		_dbContext.Entry(existing).State = EntityState.Detached;
+		return isUpdated;
 	}
 }

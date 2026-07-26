@@ -40,7 +40,7 @@ public class BookingService : IBookingService
 			var booking = new Booking(eventId);
 
 			_dbContext.Bookings.Add(booking);
-			await _dbContext.SaveChangesAsync();
+			bool isSaved = await _dbContext.SaveChangesAsync()>0;
 			_dbContext.Entry(booking).State = EntityState.Detached;
 			return (true, booking);
 		}

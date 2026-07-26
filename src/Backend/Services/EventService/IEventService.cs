@@ -9,7 +9,7 @@ public interface IEventService
 {
 	Task<bool> CreateEventAsync(Event customEvent);
 	Task<bool> RemoveEvent(Event customEvent);
-	public Task<(bool hasElement, Event? eventResult)> TryUpdateEvent(Guid modelId, Event newEvent);
+	public Task<bool> TryUpdateEvent(Event newEvent);
 
 	public Task<PaginatedResultDto> GetEvents(string? title, DateTime? from, DateTime? to, int page = 1,
 		int pageSize = 10);
