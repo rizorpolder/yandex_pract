@@ -18,7 +18,7 @@ public class BookingController : ControllerBase
 		this.bookingService = bookingService;
 	}
 
-	[HttpPost("{eventId:guid}/book")]
+	[HttpPost("{eventId:guid}/book", Name = nameof(AddBooking))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status409Conflict)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
@@ -47,7 +47,9 @@ public class BookingController : ControllerBase
 		}
 	}
 
-	[HttpGet("bookings/{bookingId:guid}")]
+	[HttpGet("bookings/{bookingId:guid}", Name = nameof(GetBooking))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
 		var (haveBooking, booking) = await bookingService.GetBookingByIdAsync(bookingId);

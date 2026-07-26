@@ -18,7 +18,11 @@ public class EventsController : ControllerBase
 		_eventService = eventService;
 	}
 
-	[HttpGet]
+	/// <summary>
+	/// Получение всех эвентов
+	/// </summary>
+	[HttpGet(Name = nameof(GetEvents))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	public async Task<ActionResult<PaginatedResultDto>> GetEvents(string? title,
 		DateTime? from,
 		DateTime? to,
@@ -29,7 +33,9 @@ public class EventsController : ControllerBase
 		return new OkObjectResult(result);
 	}
 
-	[HttpGet("{id:guid}")]
+	[HttpGet("{id:guid}", Name = nameof(GetEventById))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	public async Task<ActionResult<EventDto>> GetEventById(Guid id)
 	{
 		var result = await _eventService.GetEventById(id);
@@ -42,7 +48,9 @@ public class EventsController : ControllerBase
 		return NotFound();
 	}
 
-	[HttpPost]
+	[HttpPost(Name = nameof(CreateNewEvent))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
 	public async Task<ActionResult<EventDto>> CreateNewEvent([FromBody] EventDto newEvent)
 	{
 		if (!TryValidateModel(newEvent))
@@ -56,7 +64,10 @@ public class EventsController : ControllerBase
 		return BadRequest();
 	}
 
-	[HttpPut("{id:guid}")]
+	[HttpPut("{id:guid}",Name = nameof(UpdateEventById))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	public async Task<ActionResult<EventDto>> UpdateEventById(Guid id, [FromBody] EventDto eventDto)
 	{
 		if (!TryValidateModel(eventDto))
@@ -75,7 +86,9 @@ public class EventsController : ControllerBase
 		return new OkObjectResult(new EventDto(eventData));
 	}
 
-	[HttpDelete("{id:guid}")]
+	[HttpDelete("{id:guid}",Name = nameof(DeleteEventById))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
 	public async Task<IActionResult> DeleteEventById(Guid id)
 	{
 		var model = await _eventService.GetEventById(id);

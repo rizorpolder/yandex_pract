@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using yandex_pract.CustomEventService;
 using yandex_pract.DbContext;
 using yandex_pract.DbContext.Interfaces;
@@ -40,8 +41,12 @@ public class Program
 
 		services.AddHostedService<BackgroundBookingService>();
 
-		services.AddSwaggerGen();
-	}
+		services.AddSwaggerGen(options =>
+		{
+			options.CustomOperationIds(apiDesc => 
+				apiDesc.TryGetMethodInfo(out var methodInfo) ? methodInfo.Name : null);
+		});
+}
 
 	public static void Configure(WebApplication app)
 	{
