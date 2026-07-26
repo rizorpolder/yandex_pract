@@ -47,7 +47,7 @@ public class EfEventRepository : IEventRepository
 
 		existing.UpdateEvent(newEvent);
 
-		await _dbContext.SaveChangesAsync();
+		bool isUpdated = await _dbContext.SaveChangesAsync() > 0;
 		_dbContext.Entry(existing).State = EntityState.Detached;
 
 		return (true, existing);

@@ -37,10 +37,12 @@ namespace yandex_pract.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("EndAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at");
 
                     b.Property<DateTime>("StartAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -54,7 +56,12 @@ namespace yandex_pract.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("events", (string)null);
+                    b.ToTable("events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_events_available_seats", "available_seats <= total_seats");
+
+                            t.HasCheckConstraint("ck_events_time_range", "end_at > start_at");
+                        });
                 });
 
             modelBuilder.Entity("yandex_pract.Services.BookingService.Models.Booking", b =>

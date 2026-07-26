@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using EventTests.Tests.Repositories.Interfaces;
+using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using yandex_pract.CustomEventService;
@@ -12,28 +12,13 @@ using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
 using yandex_pract.Services.BookingService.Models;
 
-namespace EventTests.Tests.Repositories;
+namespace IntegrationTest.Tests;
 
 [Collection("Database")]
 public sealed class BookingRepositoryTest : BaseTestRepository
 {
-	protected override AppDbContext CreateContext()
-	{
-		var options = new DbContextOptionsBuilder<AppDbContext>()
-			.UseNpgsql(_postgres.GetConnectionString())
-			.Options;
-
-		var context = new AppDbContext(options);
-		context.Database.EnsureCreated();
-		return context;
-	}
-
-	protected override async Task ResetDatabaseAsync()
-	{
-		await using var context = CreateContext();
-		await context.Database.ExecuteSqlRawAsync(
-			"TRUNCATE TABLE bookings, events RESTART IDENTITY CASCADE");
-	}
+	protected override string[] TablesToTruncate =>
+		["bookings", "events"];
 
 	[Fact]
 	public async Task CreateSingleBooking_ShouldCreateBookingAndDecreaseSeats()

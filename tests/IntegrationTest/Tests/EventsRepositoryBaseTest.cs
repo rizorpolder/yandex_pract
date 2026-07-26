@@ -1,30 +1,15 @@
-using EventTests.Tests.Repositories.Interfaces;
+using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService.Models;
 using yandex_pract.DbContext;
 
-namespace EventTests.Tests.Repositories;
+namespace IntegrationTest.Tests;
 
 [Collection("Database")]
 public sealed class EventsRepositoryBaseTest : BaseTestRepository
 {
-	protected override AppDbContext CreateContext()
-	{
-		var options = new DbContextOptionsBuilder<AppDbContext>()
-			.UseNpgsql(_postgres.GetConnectionString())
-			.Options;
-
-		var context = new AppDbContext(options);
-		context.Database.EnsureCreated();
-		return context;
-	}
-
-	protected override async Task ResetDatabaseAsync()
-	{
-		await using var context = CreateContext();
-		await context.Database.ExecuteSqlRawAsync(
-			"TRUNCATE TABLE events, bookings RESTART IDENTITY CASCADE");
-	}
+	protected override string[] TablesToTruncate =>
+		["events", "bookings"];
 
 	[Fact]
 	public async Task CreateEvent_ShouldPersistToDatabase()
@@ -111,8 +96,8 @@ public sealed class EventsRepositoryBaseTest : BaseTestRepository
 				"newDesc",
 				existing.StartAt.AddHours(1),
 				existing.EndAt.AddHours(1),
-				20).SetGuid(existing.Id);
-
+				20);
+		
 			var (hasElement, result) = await repo.TryUpdateEventAsync(existing.Id, updated);
 			Assert.True(hasElement);
 		}
