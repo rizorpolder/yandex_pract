@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace yandex_pract.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigrations : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,25 +34,25 @@ namespace yandex_pract.Migrations
                 name: "bookings",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    EventId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false)
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    event_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    status = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_bookings", x => x.Id);
+                    table.PrimaryKey("PK_bookings", x => x.id);
                     table.ForeignKey(
-                        name: "FK_bookings_events_EventId",
-                        column: x => x.EventId,
+                        name: "FK_bookings_events_event_id",
+                        column: x => x.event_id,
                         principalTable: "events",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_bookings_EventId",
+                name: "ix_bookings_eventid",
                 table: "bookings",
-                column: "EventId");
+                column: "event_id");
         }
 
         /// <inheritdoc />

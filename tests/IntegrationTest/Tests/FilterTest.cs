@@ -8,7 +8,7 @@ using yandex_pract.Filters;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class FilterTest : BaseTestRepository
+public sealed class FilterTest : ABaseTestRepository
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];

@@ -12,8 +12,8 @@ using yandex_pract.DbContext;
 namespace yandex_pract.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260726194307_InitialMigrations")]
-    partial class InitialMigrations
+    [Migration("20260728170236_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -70,18 +70,22 @@ namespace yandex_pract.Migrations
             modelBuilder.Entity("yandex_pract.Services.BookingService.Models.Booking", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("EventId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("status");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EventId");
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_bookings_eventid");
 
                     b.ToTable("bookings", (string)null);
                 });

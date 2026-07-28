@@ -38,7 +38,7 @@ public class EfEventRepository : IEventRepository
 		return await _dbContext.SaveChangesAsync() > 0;
 	}
 
-	public async Task<(bool hasElement, Event? eventResult)> TryUpdateEventAsync(Guid modelId, Event newEvent)
+	public async Task<(bool success, Event? eventResult)> TryUpdateEventAsync(Guid modelId, Event newEvent)
 	{
 		var existing = await _dbContext.Events.FindAsync(modelId);
 
@@ -50,7 +50,7 @@ public class EfEventRepository : IEventRepository
 		bool isUpdated = await _dbContext.SaveChangesAsync() > 0;
 		_dbContext.Entry(existing).State = EntityState.Detached;
 
-		return (true, existing);
+		return (isUpdated, existing);
 	}
 
 	public async Task<(bool hasElement, Event? resultModel)> GetEventByIdAsync(Guid eventId)

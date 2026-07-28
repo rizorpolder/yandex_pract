@@ -8,10 +8,10 @@ using yandex_pract.CustomEventService;
 using yandex_pract.DbContext;
 using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
+using yandex_pract.Interceptors;
 using yandex_pract.Middleware;
 using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
-using yandex_pract.Services.Endpoints;
 
 public class Program
 {
@@ -19,7 +19,7 @@ public class Program
 	{
 		var connectionString = builderServices.Configuration.GetConnectionString("DefaultConnection");
 		builderServices.Services.AddDbContext<AppDbContext>(options =>
-				options.UseNpgsql(connectionString)
+				options.UseNpgsql(connectionString).AddInterceptors(new DateTimeInterceptor())
 			// .LogTo(Console.WriteLine, LogLevel.Information)   // Лог SQL запросов
 			// .EnableDetailedErrors()                           // Подробный лог запросов
 			// .EnableSensitiveDataLogging());                   // Самый подробрный лог для запросов, содержит критические данные 

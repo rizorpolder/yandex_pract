@@ -15,7 +15,7 @@ using yandex_pract.Services.BookingService.Models;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class BookingRepositoryTest : BaseTestRepository
+public sealed class BookingRepositoryTest : ABaseTestRepository
 {
 	protected override string[] TablesToTruncate =>
 		["bookings", "events"];

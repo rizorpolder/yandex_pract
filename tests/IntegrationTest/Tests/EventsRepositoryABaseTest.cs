@@ -6,7 +6,7 @@ using yandex_pract.DbContext;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class EventsRepositoryBaseTest : BaseTestRepository
+public sealed class EventsRepositoryABaseTest : ABaseTestRepository
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];
@@ -39,7 +39,6 @@ public sealed class EventsRepositoryBaseTest : BaseTestRepository
 		Assert.Equal(10, saved.AvailableSeats);
 	}
 
-
 	[Fact]
 	public async Task GetEventById_ShouldReturnCorrectEntity()
 	{
@@ -67,7 +66,6 @@ public sealed class EventsRepositoryBaseTest : BaseTestRepository
 		Assert.Equal(evt.EndAt, loaded.EndAt);
 	}
 
-
 	[Fact]
 	public async Task UpdateEvent_ShouldModifyPersistedEntity()
 	{
@@ -82,7 +80,8 @@ public sealed class EventsRepositoryBaseTest : BaseTestRepository
 				10);
 
 			arrangeContext.Events.Add(evt);
-			await arrangeContext.SaveChangesAsync();
+			var saved = await arrangeContext.SaveChangesAsync() > 0;
+			Assert.True(saved);
 		}
 
 		await using (var updateContext = CreateContext())
@@ -97,7 +96,7 @@ public sealed class EventsRepositoryBaseTest : BaseTestRepository
 				existing.StartAt.AddHours(1),
 				existing.EndAt.AddHours(1),
 				20);
-		
+
 			var (hasElement, result) = await repo.TryUpdateEventAsync(existing.Id, updated);
 			Assert.True(hasElement);
 		}
@@ -112,7 +111,6 @@ public sealed class EventsRepositoryBaseTest : BaseTestRepository
 			Assert.Equal(20, saved.AvailableSeats);
 		}
 	}
-
 
 	[Fact]
 	public async Task DeleteEvent_ShouldRemoveEntity()

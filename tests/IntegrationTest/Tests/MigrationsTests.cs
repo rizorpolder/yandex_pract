@@ -10,7 +10,7 @@ using yandex_pract.Services.BookingService.Models;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public class MigrationsTests : BaseTestRepository
+public class MigrationsTests : ABaseTestRepository
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];
@@ -35,13 +35,15 @@ public class MigrationsTests : BaseTestRepository
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		var eventsExists = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM information_schema.tables WHERE table_name = 'events'");
+		var eventsExists = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'events'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, eventsExists);
 
-		var bookingsExists = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM information_schema.tables WHERE table_name = 'bookings'");
+		var bookingsExists = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'bookings'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, bookingsExists);
 	}
@@ -52,13 +54,15 @@ public class MigrationsTests : BaseTestRepository
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		var seatsCheck = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM pg_constraint WHERE conname = 'ck_events_available_seats'");
+		var seatsCheck = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_constraint WHERE conname = 'ck_events_available_seats'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, seatsCheck);
 
-		var timeCheck = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM pg_constraint WHERE conname = 'ck_events_time_range'");
+		var timeCheck = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_constraint WHERE conname = 'ck_events_time_range'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, timeCheck);
 	}
@@ -80,8 +84,9 @@ public class MigrationsTests : BaseTestRepository
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		var indexExists = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM pg_indexes WHERE indexname = 'ix_bookings_eventid'");
+		var indexExists = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_indexes WHERE indexname = 'ix_bookings_eventid'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, indexExists);
 	}
@@ -92,15 +97,19 @@ public class MigrationsTests : BaseTestRepository
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		var startAtType = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM information_schema.columns " +
-			"WHERE table_name = 'events' AND column_name = 'start_at' AND data_type = 'timestamp with time zone'");
+		var startAtType = await ctx.Database
+			.SqlQueryRaw<int>(
+				"SELECT 1 AS \"Value\" FROM information_schema.columns " +
+				"WHERE table_name = 'events' AND column_name = 'start_at' AND data_type = 'timestamp with time zone'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, startAtType);
 
-		var idType = await ctx.Database.ExecuteSqlRawAsync(
-			"SELECT 1 FROM information_schema.columns " +
-			"WHERE table_name = 'bookings' AND column_name = 'id' AND data_type = 'uuid'");
+		var idType = await ctx.Database
+			.SqlQueryRaw<int>(
+				"SELECT 1 AS \"Value\" FROM information_schema.columns " +
+				"WHERE table_name = 'bookings' AND column_name = 'id' AND data_type = 'uuid'")
+			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, idType);
 	}
@@ -118,7 +127,8 @@ public class MigrationsTests : BaseTestRepository
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			5);
@@ -137,7 +147,8 @@ public class MigrationsTests : BaseTestRepository
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		var evt = new Event("t", "d",
+		var evt = new Event("t",
+			"d",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			10);
@@ -155,7 +166,8 @@ public class MigrationsTests : BaseTestRepository
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		var evt = new Event("t", "d",
+		var evt = new Event("t",
+			"d",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(-1),
 			10);
