@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Application.Services.Abstraction.Services;
+using Application.Services.BookingService;
+using Domain.Models.Event;
+using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Models;
 using yandex_pract.DbContext;
 using yandex_pract.Filters;
 using yandex_pract.Services.BookingService;

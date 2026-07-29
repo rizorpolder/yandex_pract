@@ -1,15 +1,17 @@
 using System.Collections.Concurrent;
+using Application.Services.Abstraction.Repositories;
+using Application.Services.Abstraction.Services;
+using Application.Services.BackgroundBookingService;
+using Application.Services.BookingService;
+using Domain.Exceptions;
+using Domain.Models.Booking;
+using Domain.Models.Event;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Models;
-using yandex_pract.CustomException;
 using yandex_pract.DbContext;
-using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
-using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
-using yandex_pract.Services.BookingService.Models;
 
 namespace EventTests.Tests;
 

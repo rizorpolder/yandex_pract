@@ -1,8 +1,8 @@
+using Domain.Models.Event;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Models;
 using yandex_pract.DbContext;
 using yandex_pract.Filters;
 
