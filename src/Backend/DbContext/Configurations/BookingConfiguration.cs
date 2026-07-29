@@ -14,7 +14,6 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 		builder.Property(x => x.Id)
 			.HasColumnName("id")
 			.ValueGeneratedNever();
-
 		builder.Property(x => x.EventId)
 			.HasColumnName("event_id");
 

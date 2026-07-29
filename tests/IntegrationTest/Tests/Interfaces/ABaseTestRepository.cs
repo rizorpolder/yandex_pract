@@ -7,9 +7,9 @@ namespace IntegrationTest.Tests.Interfaces;
 
 public abstract class ABaseTestRepository : IAsyncLifetime
 {
-	protected readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-		.WithImage("postgres:16-alpine")
+	protected readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
 		.Build();
+		
 
 	public async Task InitializeAsync() => await _postgres.StartAsync();
 	public async Task DisposeAsync() => await _postgres.DisposeAsync();

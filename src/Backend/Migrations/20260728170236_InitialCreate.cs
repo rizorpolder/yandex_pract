@@ -17,7 +17,7 @@ namespace yandex_pract.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     start_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     end_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     total_seats = table.Column<int>(type: "integer", nullable: false),
