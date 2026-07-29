@@ -1,3 +1,4 @@
+using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
@@ -10,7 +11,7 @@ using yandex_pract.Services.BookingService.Models;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public class MigrationsTests : ABaseTestRepository
+public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];
@@ -20,13 +21,14 @@ public class MigrationsTests : ABaseTestRepository
 	{
 		await using var ctx = CreateContext();
 
-		var pending = await ctx.Database.GetPendingMigrationsAsync();
-		Assert.NotEmpty(pending);
-
 		await ctx.Database.MigrateAsync();
 
 		var applied = await ctx.Database.GetAppliedMigrationsAsync();
 		Assert.NotEmpty(applied);
+		Assert.Contains(applied, m => m.Contains("InitialCreate"));
+
+		var pending = await ctx.Database.GetPendingMigrationsAsync();
+		Assert.Empty(pending);
 	}
 
 	[Fact]

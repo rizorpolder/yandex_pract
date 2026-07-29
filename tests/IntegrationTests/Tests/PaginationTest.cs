@@ -1,3 +1,4 @@
+using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
@@ -8,7 +9,7 @@ using yandex_pract.Filters;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class PaginationTest : ABaseTestRepository
+public sealed class PaginationTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];

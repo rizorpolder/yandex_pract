@@ -1,3 +1,4 @@
+using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService.Models;
@@ -6,7 +7,7 @@ using yandex_pract.DbContext;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class EventsRepositoryABaseTest : ABaseTestRepository
+public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];

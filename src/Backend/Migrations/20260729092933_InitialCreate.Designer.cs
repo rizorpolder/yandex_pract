@@ -12,8 +12,8 @@ using yandex_pract.DbContext;
 namespace yandex_pract.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260728170236_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260729092933_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -37,7 +37,8 @@ namespace yandex_pract.Migrations
 
                     b.Property<string>("Description")
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
 
                     b.Property<DateTime>("EndAt")
                         .HasColumnType("timestamp with time zone")

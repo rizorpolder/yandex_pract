@@ -1,28 +1,24 @@
+using IntegrationTest.Tests.Fixture;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
 using yandex_pract.DbContext;
 using yandex_pract.Interceptors;
 
 namespace IntegrationTest.Tests.Interfaces;
 
-public abstract class ABaseTestRepository : IAsyncLifetime
+public abstract class ABaseTestRepository(PostgresContainerFixture fixture)
 {
-	protected readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
-		.Build();
-		
+	protected readonly PostgresContainerFixture _fixture = fixture;
 
-	public async Task InitializeAsync() => await _postgres.StartAsync();
-	public async Task DisposeAsync() => await _postgres.DisposeAsync();
 	protected virtual string[] TablesToTruncate => ["events", "bookings"];
 
 	protected AppDbContext CreateContext()
 	{
 		var options = new DbContextOptionsBuilder<AppDbContext>()
-			.UseNpgsql(_postgres.GetConnectionString())
+			.UseNpgsql(_fixture.Postgres.GetConnectionString())
 			.AddInterceptors(new DateTimeInterceptor())
 			.Options;
 
-		return  new AppDbContext(options);
+		return new AppDbContext(options);
 	}
 
 	protected async Task ResetDatabaseAsync()
@@ -31,8 +27,6 @@ public abstract class ABaseTestRepository : IAsyncLifetime
 		await ctx.Database.MigrateAsync();
 
 		var tables = string.Join(", ", TablesToTruncate);
-		var sql = $"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE";
-
-		await ctx.Database.ExecuteSqlRawAsync(sql);
+		await ctx.Database.ExecuteSqlRawAsync($"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE");
 	}
 }

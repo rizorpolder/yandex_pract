@@ -34,7 +34,8 @@ namespace yandex_pract.Migrations
 
                     b.Property<string>("Description")
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
 
                     b.Property<DateTime>("EndAt")
                         .HasColumnType("timestamp with time zone")

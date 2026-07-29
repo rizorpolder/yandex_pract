@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,7 @@ using yandex_pract.Services.BookingService.Models;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class BookingRepositoryTest : ABaseTestRepository
+public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
 {
 	protected override string[] TablesToTruncate =>
 		["bookings", "events"];
@@ -175,7 +176,7 @@ public sealed class BookingRepositoryTest : ABaseTestRepository
 
 		var services = new ServiceCollection();
 
-		services.AddDbContext<AppDbContext>(o => o.UseNpgsql(_postgres.GetConnectionString()));
+		services.AddDbContext<AppDbContext>(o => o.UseNpgsql(_fixture.Postgres.GetConnectionString()));
 		services.AddScoped<IEventRepository, EfEventRepository>();
 		services.AddScoped<IBookingRepository, EfBookingRepository>();
 		services.AddScoped<EventFilterService>();
