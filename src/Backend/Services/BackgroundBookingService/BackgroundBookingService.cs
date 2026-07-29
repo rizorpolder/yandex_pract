@@ -26,8 +26,8 @@ public class BackgroundBookingService : BackgroundService
 		{
 			using var scope = _scopeFactory.CreateScope();
 
-			var bookingDb = scope.ServiceProvider.GetRequiredService<IBookingDataBase>();
-			var eventDb = scope.ServiceProvider.GetRequiredService<IEventDataBase>();
+			var bookingDb = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+			var eventDb = scope.ServiceProvider.GetRequiredService<IEventRepository>();
 
 			var pending = await bookingDb.GetPendingAsync();
 			if (pending.Count == 0)
@@ -43,8 +43,8 @@ public class BackgroundBookingService : BackgroundService
 
 	private async Task ProcessBookingAsync(
 		Booking booking,
-		IBookingDataBase bookingDb,
-		IEventDataBase eventDb,
+		IBookingRepository bookingDb,
+		IEventRepository eventDb,
 		CancellationToken stoppingToken)
 	{
 		try
@@ -83,7 +83,7 @@ public class BackgroundBookingService : BackgroundService
 		}
 	}
 
-	private async Task ReleaseSeatsAsync(Booking booking, IEventDataBase eventDb)
+	private async Task ReleaseSeatsAsync(Booking booking, IEventRepository eventDb)
 	{
 		var (hasEvent, evt) = await eventDb.GetEventByIdAsync(booking.EventId);
 		if (hasEvent)

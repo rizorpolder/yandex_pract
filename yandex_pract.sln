@@ -2,7 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "src\Backend\Backend.csproj", "{614E1F6A-C99E-4E8E-8C9D-5C905DAF5D5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventTests", "tests\EventTests\EventTests.csproj", "{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "tests\UnitTests\UnitTests.csproj", "{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "tests\IntegrationTests\IntegrationTests.csproj", "{0ABF255B-6B9D-4DF0-B09E-78F0DC0D6379}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,6 +20,10 @@ Global
 		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68940D7F-0ACF-47F5-B2FA-46DB31E1E186}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0ABF255B-6B9D-4DF0-B09E-78F0DC0D6379}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0ABF255B-6B9D-4DF0-B09E-78F0DC0D6379}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0ABF255B-6B9D-4DF0-B09E-78F0DC0D6379}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0ABF255B-6B9D-4DF0-B09E-78F0DC0D6379}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection

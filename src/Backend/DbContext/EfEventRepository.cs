@@ -7,11 +7,11 @@ using yandex_pract.DbContext.Interfaces;
 
 namespace yandex_pract.DbContext;
 
-public class EfEventDataBase : IEventDataBase
+public class EfEventRepository : IEventRepository
 {
 	private readonly AppDbContext _dbContext;
 
-	public EfEventDataBase(AppDbContext dbContext)
+	public EfEventRepository(AppDbContext dbContext)
 	{
 		_dbContext = dbContext;
 	}
@@ -38,7 +38,7 @@ public class EfEventDataBase : IEventDataBase
 		return await _dbContext.SaveChangesAsync() > 0;
 	}
 
-	public async Task<(bool hasElement, Event? eventResult)> TryUpdateEventAsync(Guid modelId, Event newEvent)
+	public async Task<(bool success, Event? eventResult)> TryUpdateEventAsync(Guid modelId, Event newEvent)
 	{
 		var existing = await _dbContext.Events.FindAsync(modelId);
 
@@ -47,10 +47,10 @@ public class EfEventDataBase : IEventDataBase
 
 		existing.UpdateEvent(newEvent);
 
-		await _dbContext.SaveChangesAsync();
+		bool isUpdated = await _dbContext.SaveChangesAsync() > 0;
 		_dbContext.Entry(existing).State = EntityState.Detached;
 
-		return (true, existing);
+		return (isUpdated, existing);
 	}
 
 	public async Task<(bool hasElement, Event? resultModel)> GetEventByIdAsync(Guid eventId)

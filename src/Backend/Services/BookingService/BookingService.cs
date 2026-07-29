@@ -11,38 +11,30 @@ using yandex_pract.Services.BookingService.Models;
 
 namespace yandex_pract.Services.BookingService;
 
-public class BookingService : IBookingService
+public class BookingService(IBookingRepository bookingRepository, IEventRepository eventRepository)
+	: IBookingService
 {
-	private readonly AppDbContext _dbContext;
-	private readonly IEventDataBase _eventDataBase;
 	private readonly SemaphoreSlim _semaphore = new(1, 1);
-
-	public BookingService(AppDbContext dbContext, IEventDataBase eventDataBase)
-	{
-		_dbContext = dbContext;
-		_eventDataBase = eventDataBase;
-	}
 
 	public async Task<(bool result, Booking booking)> CreateBookingAsync(Guid eventId)
 	{
 		await _semaphore.WaitAsync();
 		try
 		{
-			var (hasEvent, eventData) = await _eventDataBase.GetEventByIdAsync(eventId);
+			var (hasEvent, eventData) = await eventRepository.GetEventByIdAsync(eventId);
 			if (!hasEvent)
 				return (false, null);
 
 			if (!eventData.TryReserveSeats())
 				throw new NoAvailableSeatsException("No available seats");
 
-			await _eventDataBase.UpdateAsync(eventData);
+			await eventRepository.UpdateAsync(eventData);
 
 			var booking = new Booking(eventId);
 
-			_dbContext.Bookings.Add(booking);
-			bool isSaved = await _dbContext.SaveChangesAsync()>0;
-			_dbContext.Entry(booking).State = EntityState.Detached;
-			return (true, booking);
+			bool isSuccess = await bookingRepository.EnqueueAsync(booking);
+			
+			return (isSuccess, booking);
 		}
 		finally
 		{
@@ -52,10 +44,7 @@ public class BookingService : IBookingService
 
 	public async Task<(bool haveBooking, Booking booking)> GetBookingByIdAsync(Guid bookingId)
 	{
-		var booking = await _dbContext.Bookings.AsNoTracking()
-			.FirstOrDefaultAsync(b => b.Id == bookingId);
-
-		return (booking != null, booking);
+		return await bookingRepository.TryFindBookingAsync(bookingId);
 	}
 
 	public async Task<List<Booking>> DequeuePendingAsync()
@@ -63,28 +52,19 @@ public class BookingService : IBookingService
 		await _semaphore.WaitAsync();
 		try
 		{
-			var pending = await _dbContext.Bookings
-				.Where(b => b.Status == BookingStatus.Pending)
-				.ToListAsync();
+			var pending = await bookingRepository.GetPendingAsync();
 
 			foreach (var booking in pending)
 			{
 				booking.Status = BookingStatus.Processing;
+				await bookingRepository.UpdateBookingAsync(booking);
 			}
-
-			await _dbContext.SaveChangesAsync();
-
+			
 			return pending;
 		}
 		finally
 		{
 			_semaphore.Release();
 		}
-	}
-
-	public async Task UpdateBookingAsync(Booking booking)
-	{
-		_dbContext.Bookings.Update(booking);
-		await _dbContext.SaveChangesAsync();
 	}
 }

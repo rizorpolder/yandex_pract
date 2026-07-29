@@ -8,10 +8,10 @@ using yandex_pract.CustomEventService;
 using yandex_pract.DbContext;
 using yandex_pract.DbContext.Interfaces;
 using yandex_pract.Filters;
+using yandex_pract.Interceptors;
 using yandex_pract.Middleware;
 using yandex_pract.Services.BackgroundBookingService;
 using yandex_pract.Services.BookingService;
-using yandex_pract.Services.Endpoints;
 
 public class Program
 {
@@ -19,7 +19,7 @@ public class Program
 	{
 		var connectionString = builderServices.Configuration.GetConnectionString("DefaultConnection");
 		builderServices.Services.AddDbContext<AppDbContext>(options =>
-				options.UseNpgsql(connectionString)
+				options.UseNpgsql(connectionString).AddInterceptors(new DateTimeInterceptor())
 			// .LogTo(Console.WriteLine, LogLevel.Information)   // Лог SQL запросов
 			// .EnableDetailedErrors()                           // Подробный лог запросов
 			// .EnableSensitiveDataLogging());                   // Самый подробрный лог для запросов, содержит критические данные 
@@ -30,8 +30,8 @@ public class Program
 	{
 		services.AddControllers();
 
-		services.AddScoped<IEventDataBase, EfEventDataBase>();
-		services.AddScoped<IBookingDataBase, EfBookingDataBase>();
+		services.AddScoped<IEventRepository, EfEventRepository>();
+		services.AddScoped<IBookingRepository, EfBookingRepository>();
 
 		services.AddScoped<EventFilterService>();
 
@@ -57,6 +57,7 @@ public class Program
 			app.UseSwagger();
 			app.UseSwaggerUI();
 		}
+		
 
 		app.UseHttpsRedirection();
 		app.UseRouting();
@@ -64,7 +65,7 @@ public class Program
 		using (var scope = app.Services.CreateScope())
 		{
 			var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-			db.Database.EnsureCreated();
+			db.Database.Migrate();
 		}
 
 		app.MapControllers();
