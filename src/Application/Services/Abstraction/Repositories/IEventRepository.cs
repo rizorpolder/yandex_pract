@@ -5,11 +5,10 @@ namespace Application.Services.Abstraction.Repositories;
 public interface IEventRepository
 {
 	public Task<IReadOnlyList<Event>> GetAllEventsAsync();
-	public Task<bool> TryAddEventAsync(Event customEvent);
-	public Task<bool> TryRemoveEventAsync(Event customEvent);
-	public Task<(bool success, Event? eventResult)> TryUpdateEventAsync(Guid modelId, Event newEvent);
+	Task<Event?> GetByIdAsync(Guid id);
 
-	public Task<(bool hasElement, Event? resultModel)> GetEventByIdAsync(Guid eventId);
+	public Task AddAsync(Event customEvent);
+	public Task RemoveAsync(Event customEvent);
 
-	public Task<bool> UpdateAsync(Event evt);
+	public Task SaveChangesAsync();
 }

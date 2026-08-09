@@ -1,5 +1,4 @@
 ﻿using Application.Services.Abstraction.Services;
-using Domain.Models.Event;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using yandex_pract.CustomEventService.Dto;
@@ -17,9 +16,6 @@ public class EventsController : ControllerBase
 		_eventService = eventService;
 	}
 
-	/// <summary>
-	/// Получение всех эвентов
-	/// </summary>
 	[HttpGet(Name = nameof(GetEvents))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	public async Task<ActionResult<PaginatedResultDto>> GetEvents(string? title,
@@ -39,31 +35,29 @@ public class EventsController : ControllerBase
 	{
 		var result = await _eventService.GetEventById(id);
 
-		if (result.hasElement)
-		{
-			return new OkObjectResult(new EventDto(result.resultModel));
-		}
+		if (!result.IsSuccess)
+			return NotFound(new { Message = result.ErrorMessage });
 
-		return NotFound();
+		return new OkObjectResult(result.Value);
 	}
 
 	[HttpPost(Name = nameof(CreateNewEvent))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
-	public async Task<ActionResult<EventDto>> CreateNewEvent([FromBody] EventDto newEvent)
+	public async Task<ActionResult<EventDto>> CreateNewEvent([FromBody] EventDto eventDto)
 	{
-		if (!TryValidateModel(newEvent))
+		if (!TryValidateModel(eventDto))
 			return BadRequest();
 
-		var model = new Event(newEvent);
-		var createResult = await _eventService.CreateEventAsync(model);
-		if (createResult)
-			return new OkObjectResult(new EventDto(model)) {StatusCode = StatusCodes.Status201Created};
+		var result = await _eventService.CreateEventAsync(eventDto);
 
-		return BadRequest();
+		if (!result.IsSuccess)
+			return BadRequest(new { Message = result.ErrorMessage });
+
+		return new OkObjectResult(result.Value) { StatusCode = StatusCodes.Status201Created };
 	}
 
-	[HttpPut("{id:guid}",Name = nameof(UpdateEventById))]
+	[HttpPut("{id:guid}", Name = nameof(UpdateEventById))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
@@ -71,33 +65,26 @@ public class EventsController : ControllerBase
 	{
 		if (!TryValidateModel(eventDto))
 			return BadRequest();
-		//TODO Маппинг DTO переноситсяв _eventService (в Application слой)
-		var newModel = new Event(eventDto);
-		var (hasElement, eventData) = await _eventService.GetEventById(id);
-		if (!hasElement)
-			return NotFound();
+		var result = await _eventService.UpdateEventAsync(id, eventDto);
+		if (!result.IsSuccess)
+			return NotFound(new { Message = result.ErrorMessage });
 
-		eventData.UpdateEvent(newModel);
-		var updateResult = await _eventService.TryUpdateEvent(eventData);
-		if (!updateResult)
-			return NotFound();
-
-		return new OkObjectResult(new EventDto(eventData));
+		return new OkObjectResult(result.Value);
 	}
 
-	[HttpDelete("{id:guid}",Name = nameof(DeleteEventById))]
+	[HttpDelete("{id:guid}", Name = nameof(DeleteEventById))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
 	public async Task<IActionResult> DeleteEventById(Guid id)
 	{
-		var model = await _eventService.GetEventById(id);
-		if (!model.hasElement)
-			return NotFound();
+		var getEvtResult = await _eventService.GetEventById(id);
+		if (!getEvtResult.IsSuccess)
+			return NotFound(new { message = getEvtResult.ErrorMessage });
 
-		var isSuccess = await _eventService.RemoveEvent(model.resultModel);
-		if (isSuccess)
-			return Ok();
+		var removeEvtResult = await _eventService.RemoveEvent(getEvtResult.Value);
+		if (!removeEvtResult.IsSuccess)
+			return BadRequest(new { message = removeEvtResult.ErrorMessage });
 
-		return BadRequest();
+		return Ok();
 	}
 }

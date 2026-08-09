@@ -3,13 +3,12 @@ using Application.Services.Abstraction.Services;
 using Application.Services.BackgroundBookingService;
 using Application.Services.BookingService;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Presentation.Controllers;
 using yandex_pract.CustomEventService;
 using yandex_pract.CustomEventService.Controllers;
 using yandex_pract.DbContext;
 using yandex_pract.Filters;
-using yandex_pract.Services.BookingService;
 
 public class ProgramAdapter
 {

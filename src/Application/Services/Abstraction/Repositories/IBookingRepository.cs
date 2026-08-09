@@ -4,11 +4,9 @@ namespace Application.Services.Abstraction.Repositories;
 
 public interface IBookingRepository
 {
-	Task<bool> EnqueueAsync(Booking booking);
-
-	Task<(bool found, Booking booking)> TryFindBookingAsync(Guid bookingId);
-
-	Task<List<Booking>> GetPendingAsync();
-
-	Task UpdateBookingAsync(Booking booking);
+	public Task AddBookingAsync(Booking booking);
+	public Task DeleteBookingAsync(Booking booking);
+	public Task<Booking?> GetBookingAsync(Guid bookingId);
+	public Task SaveChangesAsync();
+	public Task<List<Booking>> GetPendingAsync();
 }

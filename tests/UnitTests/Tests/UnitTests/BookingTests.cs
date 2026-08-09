@@ -55,7 +55,7 @@ public class BookingTests
 	public async Task CreateSingleBookingTest()
 	{
 		var (db, eventService, bookingService) = CreateServices();
-
+		var repository = new Mock<IBookingRepository>();
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 		var added = await eventService.CreateEventAsync(evt);
 		Assert.True(added);

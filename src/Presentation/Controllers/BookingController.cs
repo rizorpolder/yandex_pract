@@ -24,20 +24,15 @@ public class BookingController : ControllerBase
 	{
 		try
 		{
-			var (result, booking) = await bookingService.CreateBookingAsync(eventId);
+			var bookingResult = await bookingService.CreateBookingAsync(eventId);
 
-			if (!result)
-				return NotFound(new {Message = "Event not found"});
+			if (!bookingResult.IsSuccess)
+				return NotFound(new {Message = bookingResult.ErrorMessage});
 
-			var location = $"/events/bookings/{booking.Id}";
+			var location = $"/events/bookings/{bookingResult.Value.Id}";
 			Response.Headers.Append("Location", location);
 
-			return Accepted(new
-			{
-				booking.Id,
-				booking.EventId,
-				booking.Status
-			});
+			return Accepted(bookingResult.Value);
 		}
 		catch (NoAvailableSeatsException)
 		{
@@ -50,16 +45,11 @@ public class BookingController : ControllerBase
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
-		var (haveBooking, booking) = await bookingService.GetBookingByIdAsync(bookingId);
+		var bookingResult = await bookingService.GetBookingByIdAsync(bookingId);
 
-		if (!haveBooking)
+		if (!bookingResult.IsSuccess)
 			return NotFound();
 
-		return Ok(new
-		{
-			booking.Id,
-			booking.EventId,
-			booking.Status
-		});
+		return Ok(bookingResult.Value);
 	}
 }

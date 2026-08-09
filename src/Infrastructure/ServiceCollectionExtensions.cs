@@ -1,6 +1,4 @@
-﻿using Application.Services.Abstraction.Repositories;
-using Application.Services.BackgroundBookingService;
-using Infrastructure.Interceptors;
+﻿using Infrastructure.Interceptors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +21,6 @@ public static class ServiceCollectionExtensions
 			options.AddInterceptors(new DateTimeInterceptor());
 		});
 
-		services.AddHostedService<BackgroundBookingService>();
 
 		return services;
 	}

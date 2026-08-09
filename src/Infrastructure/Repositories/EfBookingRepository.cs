@@ -1,51 +1,45 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Application.Services.Abstraction.Repositories;
 using Domain.Models.Booking;
 using Microsoft.EntityFrameworkCore;
+using yandex_pract.DbContext;
 
-namespace yandex_pract.DbContext;
+namespace Infrastructure.Repositories;
 
-public class EfBookingRepository : IBookingRepository
+public class EfBookingRepository(AppDbContext dbContext) : IBookingRepository
 {
-	private readonly AppDbContext _dbContext;
-
-	public EfBookingRepository(AppDbContext dbContext)
+	public async Task UpdateBookingAsync(Booking booking)
 	{
-		_dbContext = dbContext;
+		var existing = await dbContext.Bookings.FindAsync(booking.Id);
+		if (existing is null) return;
+
+		dbContext.Entry(existing).CurrentValues.SetValues(booking);
+		await dbContext.SaveChangesAsync();
+		dbContext.Entry(existing).State = EntityState.Detached;
 	}
 
-	public async Task<bool> EnqueueAsync(Booking booking)
+	public async Task AddBookingAsync(Booking booking)
 	{
-		bool isSuccess = false;
-		_dbContext.Bookings.Add(booking);
-		isSuccess = await _dbContext.SaveChangesAsync() > 0;
-		_dbContext.Entry(booking).State = EntityState.Detached;
-		return isSuccess;
+		await dbContext.Bookings.AddAsync(booking);
 	}
-	
-	
-	public async Task<(bool found, Booking booking)> TryFindBookingAsync(Guid bookingId)
+
+	public Task DeleteBookingAsync(Booking booking)
 	{
-		var booking = await _dbContext.Bookings.AsNoTracking().FirstOrDefaultAsync(x => x.Id.Equals(bookingId));
-		return (booking != null, booking);
+		dbContext.Bookings.Remove(booking);
+		return Task.CompletedTask;
+	}
+
+	public async Task<Booking?> GetBookingAsync(Guid bookingId)
+	{
+		return await dbContext.Bookings.FirstOrDefaultAsync(booking => booking.Id.Equals(bookingId));
+	}
+
+	public async Task SaveChangesAsync()
+	{
+		await dbContext.SaveChangesAsync();
 	}
 
 	public async Task<List<Booking>> GetPendingAsync()
 	{
-		return await _dbContext.Bookings.AsNoTracking().Where(x => x.Status.Equals(BookingStatus.Pending))
-			.ToListAsync();
-	}
-
-	public async Task UpdateBookingAsync(Booking booking)
-	{
-		var existing = await _dbContext.Bookings.FindAsync(booking.Id);
-		if (existing is null) return;
-
-		_dbContext.Entry(existing).CurrentValues.SetValues(booking);
-		await _dbContext.SaveChangesAsync();
-		_dbContext.Entry(existing).State = EntityState.Detached;
+		return await dbContext.Bookings.AsNoTracking().Where(x => x.Status.Equals(BookingStatus.Pending)).ToListAsync();
 	}
 }

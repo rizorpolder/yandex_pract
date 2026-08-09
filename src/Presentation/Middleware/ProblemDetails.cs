@@ -16,4 +16,3 @@ public class ProblemDetails
 	public IDictionary<string, object?> Extensions { get; set; } =
 		new Dictionary<string, object?>(StringComparer.Ordinal);
 }
-

@@ -1,5 +1,8 @@
 using Application.Services.Abstraction.Repositories;
+using Application.Services.Abstraction.RequestResult;
 using Application.Services.Abstraction.Services;
+using Application.Services.BookingService.Dto;
+using Application.Services.Mapping;
 using Domain.Exceptions;
 using Domain.Models.Booking;
 
@@ -10,55 +13,66 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 {
 	private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-	public async Task<(bool result, Booking booking)> CreateBookingAsync(Guid eventId)
+	public async Task<Result<BookingDto>> CreateBookingAsync(Guid eventId)
 	{
 		await _semaphore.WaitAsync();
 		try
 		{
-			var (hasEvent, eventData) = await eventRepository.GetEventByIdAsync(eventId);
-			if (!hasEvent)
-				return (false, null);
+			var evt = await eventRepository.GetByIdAsync(eventId);
+			if (evt == null)
 
-			if (!eventData.TryReserveSeats())
+				return Result<BookingDto>.Failure("Event not found");
+
+			if (!evt.TryReserveSeats())
 				throw new NoAvailableSeatsException("No available seats");
 
-			await eventRepository.UpdateAsync(eventData);
-
+			await eventRepository.SaveChangesAsync();
 			var booking = new Booking(eventId);
-
-			bool isSuccess = await bookingRepository.EnqueueAsync(booking);
-			
-			return (isSuccess, booking);
-		}
-		finally
-		{
-			_semaphore.Release();
-		}
-	}
-
-	public async Task<(bool haveBooking, Booking booking)> GetBookingByIdAsync(Guid bookingId)
-	{
-		return await bookingRepository.TryFindBookingAsync(bookingId);
-	}
-
-	public async Task<List<Booking>> DequeuePendingAsync()
-	{
-		await _semaphore.WaitAsync();
-		try
-		{
-			var pending = await bookingRepository.GetPendingAsync();
-
-			foreach (var booking in pending)
+			try
 			{
-				booking.Status = BookingStatus.Processing;
-				await bookingRepository.UpdateBookingAsync(booking);
+				await bookingRepository.AddBookingAsync(booking);
 			}
-			
-			return pending;
+			catch (Exception e)
+			{
+				return Result<BookingDto>.Failure("Booking not created" + e.Message);
+			}
+
+			return Result<BookingDto>.Success(BookingMapper.ToDto(booking));
 		}
 		finally
 		{
 			_semaphore.Release();
 		}
 	}
+
+	public async Task<Result<BookingDto>> GetBookingByIdAsync(Guid bookingId)
+	{
+		var booking = await bookingRepository.GetBookingAsync(bookingId);
+		if (booking is null)
+		{
+			return Result<BookingDto>.Failure("Booking not found");
+		}
+
+		return Result<BookingDto>.Success(BookingMapper.ToDto(booking));
+	}
+
+	// public async Task<List<Booking>> DequeuePendingAsync()
+	// {
+	// 	await _semaphore.WaitAsync();
+	// 	try
+	// 	{
+	// 		var pending = await bookingRepository.GetPendingAsync();
+	//
+	// 		foreach (var booking in pending)
+	// 		{
+	// 			booking.Status = BookingStatus.Processing;
+	// 			await bookingRepository.UpdateBookingAsync(booking);
+	// 		}
+	//
+	// 		return pending;
+	// 	}
+	// 	finally
+	// 	{
+	// 		_semaphore.Release();
+	// 	}
 }

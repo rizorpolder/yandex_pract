@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Domain.Models.Event;
 
 namespace yandex_pract.CustomEventService.Dto;
 
@@ -16,21 +13,11 @@ public class EventDto : IValidatableObject
 	public DateTime StartAt { get; set; }
 	public DateTime EndAt { get; set; }
 	
-	public int? TotalSeats { get; set; }
+	public int TotalSeats { get; set; }
 
 	[JsonConstructor]
 	public EventDto()
 	{
-	}
-
-	public EventDto(Event model)
-	{
-		ID = model.Id;
-		Title = model.Title;
-		Description = model.Description;
-		StartAt = model.StartAt;
-		EndAt = model.EndAt;
-		TotalSeats = model.TotalSeats;
 	}
 
 	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

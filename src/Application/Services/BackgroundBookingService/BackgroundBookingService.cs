@@ -5,22 +5,15 @@ using Microsoft.Extensions.Hosting;
 
 namespace Application.Services.BackgroundBookingService;
 
-public class BackgroundBookingService : BackgroundService
+internal class BackgroundBookingService(IServiceScopeFactory scopeFactory) : BackgroundService
 {
-	private readonly IServiceScopeFactory _scopeFactory;
-
 	private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
-
-	public BackgroundBookingService(IServiceScopeFactory scopeFactory)
-	{
-		_scopeFactory = scopeFactory;
-	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{
-			using var scope = _scopeFactory.CreateScope();
+			using var scope = scopeFactory.CreateScope();
 
 			var bookingDb = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
 			var eventDb = scope.ServiceProvider.GetRequiredService<IEventRepository>();
@@ -39,8 +32,8 @@ public class BackgroundBookingService : BackgroundService
 
 	private async Task ProcessBookingAsync(
 		Booking booking,
-		IBookingRepository bookingDb,
-		IEventRepository eventDb,
+		IBookingRepository bookingRepository,
+		IEventRepository eventRepository,
 		CancellationToken stoppingToken)
 	{
 		try
@@ -48,30 +41,30 @@ public class BackgroundBookingService : BackgroundService
 			await Task.Delay(10, stoppingToken);
 			await _processingSemaphore.WaitAsync(stoppingToken);
 
-			var (hasEvent, evt) = await eventDb.GetEventByIdAsync(booking.EventId);
+			var evt = await eventRepository.GetByIdAsync(booking.EventId);
 
-			if (!hasEvent)
+			if (evt is null)
 			{
 				booking.Reject();
-				await bookingDb.UpdateBookingAsync(booking);
+				await bookingRepository.SaveChangesAsync();
 				return;
 			}
 
 			booking.Confirm();
-			await bookingDb.UpdateBookingAsync(booking);
-			await eventDb.UpdateAsync(evt);
+			await bookingRepository.SaveChangesAsync();
+			await eventRepository.SaveChangesAsync();
 		}
 		catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
 		{
 			booking.Reject();
-			await bookingDb.UpdateBookingAsync(booking);
-			await ReleaseSeatsAsync(booking, eventDb);
+			await bookingRepository.SaveChangesAsync();
+			await ReleaseSeatsAsync(booking, eventRepository);
 		}
 		catch (Exception)
 		{
 			booking.Reject();
-			await bookingDb.UpdateBookingAsync(booking);
-			await ReleaseSeatsAsync(booking, eventDb);
+			await bookingRepository.SaveChangesAsync();
+			await ReleaseSeatsAsync(booking, eventRepository);
 		}
 		finally
 		{
@@ -81,11 +74,11 @@ public class BackgroundBookingService : BackgroundService
 
 	private async Task ReleaseSeatsAsync(Booking booking, IEventRepository eventDb)
 	{
-		var (hasEvent, evt) = await eventDb.GetEventByIdAsync(booking.EventId);
-		if (hasEvent)
+		var evt = await eventDb.GetByIdAsync(booking.EventId);
+		if (evt is not null)
 		{
 			evt.ReleaseSeats();
-			await eventDb.UpdateAsync(evt);
+			await eventDb.SaveChangesAsync();
 		}
 	}
 }
