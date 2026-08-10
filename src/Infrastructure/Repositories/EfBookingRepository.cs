@@ -40,6 +40,6 @@ public class EfBookingRepository(AppDbContext dbContext) : IBookingRepository
 
 	public async Task<List<Booking>> GetPendingAsync()
 	{
-		return await dbContext.Bookings.AsNoTracking().Where(x => x.Status.Equals(BookingStatus.Pending)).ToListAsync();
+		return await dbContext.Bookings.Where(x => x.Status.Equals(BookingStatus.Pending)).ToListAsync();
 	}
 }

@@ -1,9 +1,8 @@
-using Domain.Models.Event;
+using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using yandex_pract.CustomEventService;
-using yandex_pract.DbContext;
+using yandex_pract.CustomEventService.Dto;
 using yandex_pract.Filters;
 
 namespace IntegrationTest.Tests;
@@ -28,8 +27,18 @@ public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepo
 			for (int i = 0; i < 30; i++)
 			{
 				var title = i % 2 == 0 ? $"meeting {i}" : $"other {i}";
-				var evt = new Event(title, "desc", DateTime.UtcNow, DateTime.UtcNow.AddMinutes(1), 10);
-				await service.CreateEventAsync(evt);
+
+				var dto = new EventDto
+				{
+					Title = title,
+					Description = "desc",
+					StartAt = DateTime.UtcNow,
+					EndAt = DateTime.UtcNow.AddMinutes(1),
+					TotalSeats = 10
+				};
+
+				var created = await service.CreateEventAsync(dto);
+				Assert.True(created.IsSuccess);
 			}
 		}
 
@@ -62,11 +71,20 @@ public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepo
 
 			for (int i = 0; i < 30; i++)
 			{
-				var start = from.AddDays(i); // уже UTC
+				var start = from.AddDays(i);
 				var end = start.AddHours(1);
 
-				var evt = new Event($"title {i}", "desc", start, end, 10);
-				await service.CreateEventAsync(evt);
+				var dto = new EventDto
+				{
+					Title = $"title {i}",
+					Description = "desc",
+					StartAt = start,
+					EndAt = end,
+					TotalSeats = 10
+				};
+
+				var created = await service.CreateEventAsync(dto);
+				Assert.True(created.IsSuccess);
 			}
 		}
 
@@ -105,11 +123,20 @@ public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepo
 			for (int i = 0; i < 40; i++)
 			{
 				var title = i % 3 == 0 ? $"meeting {i}" : $"other {i}";
-				var start = from.AddDays(i); // UTC
+				var start = from.AddDays(i);
 				var end = start.AddHours(1);
 
-				var evt = new Event(title, "desc", start, end, 10);
-				await service.CreateEventAsync(evt);
+				var dto = new EventDto
+				{
+					Title = title,
+					Description = "desc",
+					StartAt = start,
+					EndAt = end,
+					TotalSeats = 10
+				};
+
+				var created = await service.CreateEventAsync(dto);
+				Assert.True(created.IsSuccess);
 			}
 		}
 
@@ -146,8 +173,17 @@ public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepo
 
 			for (int i = 0; i < 10; i++)
 			{
-				var evt = new Event($"title {i}", "desc", DateTime.UtcNow, DateTime.UtcNow.AddMinutes(1), 10);
-				await service.CreateEventAsync(evt);
+				var dto = new EventDto
+				{
+					Title = $"title {i}",
+					Description = "desc",
+					StartAt = DateTime.UtcNow,
+					EndAt = DateTime.UtcNow.AddMinutes(1),
+					TotalSeats = 10
+				};
+
+				var created = await service.CreateEventAsync(dto);
+				Assert.True(created.IsSuccess);
 			}
 		}
 

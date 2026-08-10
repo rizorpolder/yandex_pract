@@ -1,8 +1,8 @@
 using Domain.Models.Event;
+using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using yandex_pract.DbContext;
 
 namespace IntegrationTest.Tests;
 
@@ -26,9 +26,9 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 			10);
 
 		var repo = new EfEventRepository(context);
-
-		var result = await repo.TryAddEventAsync(evt);
-		Assert.True(result);
+		
+		await repo.AddAsync(evt);
+		await repo.SaveChangesAsync();
 
 		await using var verify = CreateContext();
 		var saved = await verify.Events.FirstOrDefaultAsync(e => e.Id == evt.Id);
@@ -57,9 +57,8 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 		await context.SaveChangesAsync();
 
 		var repo = new EfEventRepository(context);
-		var (haveData, loaded) = await repo.GetEventByIdAsync(evt.Id);
+		var loaded = await repo.GetByIdAsync(evt.Id);
 
-		Assert.True(haveData);
 		Assert.NotNull(loaded);
 		Assert.Equal(evt.Title, loaded.Title);
 		Assert.Equal(evt.Description, loaded.Description);
@@ -97,9 +96,8 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 				existing.StartAt.AddHours(1),
 				existing.EndAt.AddHours(1),
 				20);
-
-			var (hasElement, result) = await repo.TryUpdateEventAsync(existing.Id, updated);
-			Assert.True(hasElement);
+			existing.UpdateEvent(updated);
+			await repo.SaveChangesAsync();
 		}
 
 		await using (var verifyContext = CreateContext())
@@ -130,9 +128,8 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 		await context.SaveChangesAsync();
 
 		var repo = new EfEventRepository(context);
-		var deleted = await repo.TryRemoveEventAsync(evt);
-
-		Assert.True(deleted);
+		await repo.RemoveAsync(evt);
+		await repo.SaveChangesAsync();
 
 		await using var verify = CreateContext();
 		Assert.False(await verify.Events.AnyAsync(e => e.Id == evt.Id));
@@ -173,7 +170,9 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 
 		var repo = new EfEventRepository(context);
 
-		await Assert.ThrowsAsync<DbUpdateException>(async () => { await repo.TryAddEventAsync(evt); });
+		await repo.AddAsync(evt);
+
+		await Assert.ThrowsAsync<DbUpdateException>(() => repo.SaveChangesAsync());
 	}
 
 	[Fact]
@@ -195,7 +194,7 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 		evt.ReleaseSeats(100);
 
 		var repo = new EfEventRepository(context);
-		await Assert.ThrowsAsync<DbUpdateException>(async () => { await repo.TryUpdateEventAsync(evt.Id, evt); });
+		await Assert.ThrowsAsync<DbUpdateException>(() => repo.SaveChangesAsync());
 	}
 
 	[Fact]
@@ -211,8 +210,9 @@ public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) 
 
 		var repo = new EfEventRepository(context);
 
-		Assert.True(await repo.TryAddEventAsync(evt1));
-		Assert.True(await repo.TryAddEventAsync(evt2));
+		await repo.AddAsync(evt1);
+		await repo.AddAsync(evt2);
+		await repo.SaveChangesAsync();
 
 		await using var verify = CreateContext();
 		var events = await verify.Events.Where(e => e.Title == "title").ToListAsync();
