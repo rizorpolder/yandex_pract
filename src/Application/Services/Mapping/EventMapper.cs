@@ -14,7 +14,8 @@ internal static class EventMapper
 			Description = evt.Description,
 			StartAt = evt.StartAt,
 			EndAt = evt.EndAt,
-			TotalSeats = evt.TotalSeats
+			TotalSeats = evt.TotalSeats,
+			AvailableSeats = evt.AvailableSeats
 		};
 	}
 

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class EventsRepositoryABaseTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
+public sealed class EventsRepositoryTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];

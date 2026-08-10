@@ -30,7 +30,7 @@ public class EventService(IEventRepository eventRepository, EventFilterService f
 
 	public async Task<Result<EventDto>> RemoveEvent(EventDto eventDto)
 	{
-		var evt = EventMapper.FromDto(eventDto);
+		var evt = EventMapper.FromDto(eventDto).SetGuid(eventDto.ID);
 		try
 		{
 			await eventRepository.RemoveAsync(evt);
