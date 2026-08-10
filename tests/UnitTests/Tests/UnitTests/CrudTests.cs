@@ -1,86 +1,79 @@
-﻿using Application.Services.Abstraction.Services;
+﻿using Application.Services.Abstraction.Repositories;
+using Application.Services.Abstraction.Services;
 using Application.Services.BookingService;
 using Domain.Models.Event;
-using Microsoft.EntityFrameworkCore;
+using Moq;
 using yandex_pract.CustomEventService;
-using yandex_pract.DbContext;
+using yandex_pract.CustomEventService.Dto;
 using yandex_pract.Filters;
-using yandex_pract.Services.BookingService;
 
 namespace EventTests.Tests;
 
 public class CrudTests
 {
-	private AppDbContext CreateDb()
-	{
-		var options = new DbContextOptionsBuilder<AppDbContext>()
-			.UseInMemoryDatabase(Guid.NewGuid().ToString())
-			.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-			.Options;
-
-		return new AppDbContext(options);
-	}
-
-	private (AppDbContext db,
+	private (Mock<IEventRepository> eventRepo,
+		Mock<IBookingRepository> bookingRepo,
 		IEventService eventService,
 		IBookingService bookingService) CreateServices()
 	{
-		var db = CreateDb();
-
-		var eventDb = new EfEventRepository(db);
-		var bookingDb = new EfBookingRepository(db);
+		var eventRepo = new Mock<IEventRepository>();
+		var bookingRepo = new Mock<IBookingRepository>();
 
 		var filter = new EventFilterService();
 
-		var eventService = new EventService(eventDb, filter);
-		var bookingService = new BookingService(bookingDb, eventDb);
+		var eventService = new EventService(eventRepo.Object, filter);
+		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object);
 
-		return (db, eventService, bookingService);
-	}
-
-	private void Cleanup(AppDbContext db)
-	{
-		db.Events.RemoveRange(db.Events);
-		db.Bookings.RemoveRange(db.Bookings);
-		db.SaveChanges();
+		return (eventRepo, bookingRepo, eventService, bookingService);
 	}
 
 	[Fact]
 	public async Task CreateEventTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
-		var evt = new Event(
-			"testTitle",
-			"testDescription",
-			DateTime.Now,
-			DateTime.Now.AddSeconds(10), 3);
+		var (eventRepo, _, eventService, _) = CreateServices();
 
-		var added = await eventService.CreateEventAsync(evt);
+		var dto = new EventDto()
+		{
+			Title = "testTitle",
+			Description = "testDescription",
+			StartAt = DateTime.Now,
+			EndAt = DateTime.Now.AddSeconds(10),
+			TotalSeats = 3
+		};
 
-		Assert.True(added);
 
-		var result = await eventService.GetEventById(evt.Id);
-		Assert.True(result.hasElement);
-		Assert.NotNull(result.resultModel);
-		Assert.Equal(evt.Title, result.resultModel!.Title);
-		Assert.Equal(evt.Description, result.resultModel.Description);
+		eventRepo.Setup(r => r.AddAsync(It.IsAny<Event>()))
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var result = await eventService.CreateEventAsync(dto);
+
+		Assert.True(result.IsSuccess);
+
+		eventRepo.Verify(r => r.AddAsync(It.Is<Event>(e =>
+			e.Title == dto.Title &&
+			e.Description == dto.Description &&
+			e.TotalSeats == dto.TotalSeats)), Times.Once);
+
+		eventRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
 	}
+
 
 	[Fact]
 	public async Task GetAllEventsTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, _) = CreateServices();
 
-		var evt1 = new Event("A", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		var evt2 = new Event("B", "desc", DateTime.Now, DateTime.Now.AddMinutes(2), 5);
+		var e1 = new Event("A", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
+		var e2 = new Event("B", "desc", DateTime.Now, DateTime.Now.AddMinutes(2), 5);
 
-		await eventService.CreateEventAsync(evt1);
-		await eventService.CreateEventAsync(evt2);
+		eventRepo.Setup(r => r.GetAllEventsAsync())
+			.ReturnsAsync(new List<Event> { e1, e2 });
 
 		var result = await eventService.GetEvents(null, null, null, 1, 10);
 
-
-		Assert.NotNull(result);
 		Assert.Equal(2, result.Data.Count);
 		Assert.Contains(result.Data, e => e.Title == "A");
 		Assert.Contains(result.Data, e => e.Title == "B");
@@ -89,92 +82,126 @@ public class CrudTests
 	[Fact]
 	public async Task GetEventByID()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, _) = CreateServices();
 
-		var testEvt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var added = await eventService.CreateEventAsync(testEvt);
-		Assert.True(added);
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 
-		var evt = await eventService.GetEventById(testEvt.Id);
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
 
-		Assert.True(evt.hasElement);
-		Assert.NotNull(evt.resultModel);
-		Assert.Equal(testEvt.Id, evt.resultModel!.Id);
+		var result = await eventService.GetEventById(evt.Id);
+
+		Assert.True(result.IsSuccess);
+		Assert.NotNull(result.Value);
+		Assert.Equal(evt.Id, result.Value!.ID);
+		Assert.Equal(evt.Title, result.Value.Title);
 	}
 
 	[Fact]
 	public async Task GetEventByIncorrectID()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, _) = CreateServices();
 
 		var id = Guid.NewGuid();
 
-		var evt = await eventService.GetEventById(id);
+		eventRepo.Setup(r => r.GetByIdAsync(id))
+			.ReturnsAsync((Event?)null);
 
-		Assert.False(evt.hasElement);
-		Assert.Null(evt.resultModel);
+		var result = await eventService.GetEventById(id);
+
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
 	public async Task UpdateEventTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, _) = CreateServices();
 
-		var evt = new Event(
-			"oldTitle",
-			"oldDescription",
-			DateTime.Now,
-			DateTime.Now.AddSeconds(10), 3);
+		var original = new Event("oldTitle", "oldDescription",
+			DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 
-		await eventService.CreateEventAsync(evt);
+		var dto = new EventDto()
+		{
+			ID = original.Id,
+			Title = "newTitle",
+			Description = "newDescription",
+			StartAt = DateTime.Now,
+			EndAt = DateTime.Now.AddSeconds(20),
+			TotalSeats = 3
+		};
 
-		var updated = new Event(
-			"newTitle",
-			"newDescription",
-			DateTime.Now,
-			DateTime.Now.AddSeconds(20), 3);
-		updated.SetGuid(evt.Id);
-		
-		var result = await eventService.TryUpdateEvent(updated);
-		Assert.True(result);
-		
-		var (hasElement, eventData) = await eventService.GetEventById(evt.Id);
-		Assert.True(hasElement);
-		Assert.NotNull(eventData);
-		Assert.Equal("newTitle", eventData.Title);
-		Assert.Equal("newDescription", eventData.Description);
+		eventRepo.Setup(r => r.GetByIdAsync(original.Id))
+			.ReturnsAsync(original);
+
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var result = await eventService.UpdateEventAsync(original.Id, dto);
+
+		Assert.True(result.IsSuccess);
+		Assert.Equal("newTitle", result.Value.Title);
+		Assert.Equal("newDescription", result.Value.Description);
+
+		eventRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
 	}
 
 	[Fact]
 	public async Task UpdateBrokenIDEventTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, _) = CreateServices();
 
-		var evt = new Event(
-			"title",
-			"desc",
-			DateTime.Now,
-			DateTime.Now.AddSeconds(10), 3);
-		evt.SetGuid(Guid.NewGuid());
-		var result = await eventService.TryUpdateEvent( evt);
-		Assert.False(result);
+		var dto = new EventDto()
+		{
+			ID = Guid.NewGuid(),
+			Title = "newTitle",
+			Description = "newDescription",
+			StartAt = DateTime.Now,
+			EndAt = DateTime.Now.AddSeconds(20),
+			TotalSeats = 3
+		};
+
+		eventRepo.Setup(r => r.GetByIdAsync(dto.ID))
+			.ReturnsAsync((Event?)null);
+
+		var result = await eventService.UpdateEventAsync(dto.ID, dto);
+
+		Assert.False(result.IsSuccess);
 	}
 
 	[Fact]
 	public async Task DeleteEventTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, _) = CreateServices();
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-
-		await eventService.CreateEventAsync(evt);
 		
-		var removed = await eventService.RemoveEvent(evt);
 
-		Assert.True(removed);
+		var evt = new Event("newTitle", "newDescription", DateTime.Now, DateTime.Now.AddSeconds(20), 3);
 
-		var result = await eventService.GetEventById(evt.Id);
-		Assert.False(result.hasElement);
-		Assert.Null(result.resultModel);
+		var dto = new EventDto()
+		{
+			ID = evt.Id,
+			Title = evt.Title,
+			Description = evt.Description,
+			StartAt = evt.StartAt,
+			EndAt = evt.EndAt,
+			TotalSeats = evt.TotalSeats
+		};
+		
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
+
+		eventRepo.Setup(r => r.RemoveAsync(evt))
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var removed = await eventService.RemoveEvent(dto);
+
+		Assert.True(removed.IsSuccess);
+		Assert.NotNull(removed.Value);
+		eventRepo.Verify(r => r.RemoveAsync(It.Is<Event>(e => e.Id == removed.Value.ID)), Times.Once);
+		eventRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
 	}
 }

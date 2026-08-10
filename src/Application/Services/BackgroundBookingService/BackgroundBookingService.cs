@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Application.Services.Abstraction.Repositories;
 using Domain.Models.Booking;
 using Microsoft.Extensions.DependencyInjection;

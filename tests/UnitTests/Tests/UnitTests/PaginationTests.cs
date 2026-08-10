@@ -1,68 +1,53 @@
-﻿using Application.Services.Abstraction.Services;
-using Application.Services.BookingService;
+﻿using Application.Services.Abstraction.Repositories;
+using Application.Services.Abstraction.Services;
 using Domain.Models.Event;
-using Microsoft.EntityFrameworkCore;
+using Moq;
 using yandex_pract.CustomEventService;
-using yandex_pract.DbContext;
 using yandex_pract.Filters;
-using yandex_pract.Services.BookingService;
 
 namespace EventTests.Tests;
 
-[Collection("ShareDBCollection")]
 public class PaginationTests
 {
-	private AppDbContext CreateDb()
+	private (Mock<IEventRepository> eventRepo,
+		IEventService eventService) CreateServices()
 	{
-		var options = new DbContextOptionsBuilder<AppDbContext>()
-			.UseInMemoryDatabase(Guid.NewGuid().ToString())
-			.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-			.Options;
-
-		return new AppDbContext(options);
-	}
-
-	private (AppDbContext db,
-		IEventService eventService,
-		IBookingService bookingService) CreateServices()
-	{
-		var db = CreateDb();
-
-		var eventDb = new EfEventRepository(db);
-		var bookingDb = new EfBookingRepository(db);
-
+		var eventRepo = new Mock<IEventRepository>();
 		var filter = new EventFilterService();
+		var eventService = new EventService(eventRepo.Object, filter);
 
-		var eventService = new EventService(eventDb, filter);
-		var bookingService = new BookingService(bookingDb, eventDb);
-
-		return (db, eventService, bookingService);
-	}
-
-	private void Cleanup(AppDbContext db)
-	{
-		db.Events.RemoveRange(db.Events);
-		db.Bookings.RemoveRange(db.Bookings);
-		db.SaveChanges();
+		return (eventRepo, eventService);
 	}
 
 	[Fact]
 	public async Task PaginationTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
-		
+		var events = new List<Event>();
 		for (int i = 0; i < 25; i++)
 		{
-			var evt = new Event($"title {i}", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 10);
-			await eventService.CreateEventAsync(evt);
+			events.Add(new Event(
+				$"title {i}",
+				"desc",
+				DateTime.Now,
+				DateTime.Now.AddMinutes(1),
+				10));
 		}
 
+		eventRepo.Setup(r => r.GetAllEventsAsync())
+			.ReturnsAsync(events);
+
 		var page1 = await eventService.GetEvents(null, null, null, 1, 5);
+
 		var page2 = await eventService.GetEvents(null, null, null, 2, 5);
 
 		Assert.Equal(5, page1.Data.Count);
 		Assert.Equal(5, page2.Data.Count);
+
 		Assert.NotEqual(page1.Data.First().ID, page2.Data.First().ID);
+
+		Assert.Equal("title 0", page1.Data.First().Title);
+		Assert.Equal("title 5", page2.Data.First().Title);
 	}
 }

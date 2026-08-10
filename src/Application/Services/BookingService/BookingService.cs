@@ -31,6 +31,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 			try
 			{
 				await bookingRepository.AddBookingAsync(booking);
+				await bookingRepository.SaveChangesAsync();
 			}
 			catch (Exception e)
 			{

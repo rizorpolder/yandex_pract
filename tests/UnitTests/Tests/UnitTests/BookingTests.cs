@@ -6,396 +6,462 @@ using Application.Services.BookingService;
 using Domain.Exceptions;
 using Domain.Models.Booking;
 using Domain.Models.Event;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using yandex_pract.CustomEventService;
-using yandex_pract.DbContext;
+using yandex_pract.CustomEventService.Dto;
 using yandex_pract.Filters;
-using yandex_pract.Services.BookingService;
 
 namespace EventTests.Tests;
 
 public class BookingTests
 {
-	private AppDbContext CreateDb()
-	{
-		var options = new DbContextOptionsBuilder<AppDbContext>()
-			.UseInMemoryDatabase(Guid.NewGuid().ToString())
-			.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-			.Options;
-
-		return new AppDbContext(options);
-	}
-
-	private (AppDbContext db,
+	private (Mock<IEventRepository> eventRepo,
+		Mock<IBookingRepository> bookingRepo,
 		IEventService eventService,
 		IBookingService bookingService) CreateServices()
 	{
-		var db = CreateDb();
-
-		var eventDb = new EfEventRepository(db);
-		var bookingDb = new EfBookingRepository(db);
+		var eventRepo = new Mock<IEventRepository>();
+		var bookingRepo = new Mock<IBookingRepository>();
 
 		var filter = new EventFilterService();
 
-		var eventService = new EventService(eventDb, filter);
-		var bookingService = new BookingService(bookingDb, eventDb);
+		var eventService = new EventService(eventRepo.Object, filter);
+		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object);
 
-		return (db, eventService, bookingService);
-	}
-
-	private void Cleanup(AppDbContext db)
-	{
-		db.Events.RemoveRange(db.Events);
-		db.Bookings.RemoveRange(db.Bookings);
-		db.SaveChanges();
+		return (eventRepo, bookingRepo, eventService, bookingService);
 	}
 
 	[Fact]
 	public async Task CreateSingleBookingTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
-		var repository = new Mock<IBookingRepository>();
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var added = await eventService.CreateEventAsync(evt);
-		Assert.True(added);
+		var (eventRepo, bookingRepo, eventService, bookingService) = CreateServices();
+
+		var dto = new EventDto()
+		{
+			Title = "testTitle",
+			Description = "testDescription",
+			StartAt = DateTime.Now,
+			EndAt = DateTime.Now.AddSeconds(10),
+			TotalSeats = 3
+		};
+
+		var createdEvent = new Event(dto.Title, dto.Description, dto.StartAt, dto.EndAt, dto.TotalSeats);
+
+		eventRepo.Setup(r => r.AddAsync(It.IsAny<Event>()))
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.GetByIdAsync(createdEvent.Id))
+			.ReturnsAsync(createdEvent);
+
+		var added = await eventService.CreateEventAsync(dto);
+		Assert.True(added.IsSuccess);
 
 
-		var bookingResult = await bookingService.CreateBookingAsync(evt.Id);
-		Assert.True(bookingResult.result);
-		Assert.NotNull(bookingResult.booking);
-		Assert.Equal(evt.Id, bookingResult.booking.EventId);
-		Cleanup(db);
+		var booking = new Booking(createdEvent.Id);
+
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
+			.Returns(Task.CompletedTask);
+
+		bookingRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		bookingRepo.Setup(r => r.GetBookingAsync(booking.Id))
+			.ReturnsAsync(booking);
+
+		var bookingResult = await bookingService.CreateBookingAsync(createdEvent.Id);
+
+		Assert.True(bookingResult.IsSuccess);
+		Assert.NotNull(bookingResult.Value);
+		Assert.Equal(createdEvent.Id, bookingResult.Value.EventId);
+
+		eventRepo.Verify(r => r.AddAsync(It.IsAny<Event>()), Times.Once);
+		bookingRepo.Verify(r => r.AddBookingAsync(It.IsAny<Booking>()), Times.Once);
 	}
+
 
 	[Fact]
 	public async Task CreateSeveralBookingsTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, eventService, bookingService) = CreateServices();
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var added = await eventService.CreateEventAsync(evt);
-		Assert.True(added);
+		var dto = new EventDto()
+		{
+			Title = "title",
+			Description = "desc",
+			StartAt = DateTime.Now,
+			EndAt = DateTime.Now.AddSeconds(10),
+			TotalSeats = 3
+		};
 
-		var booking1 = await bookingService.CreateBookingAsync(evt.Id);
-		var booking2 = await bookingService.CreateBookingAsync(evt.Id);
+		var evt = new Event(dto.Title, dto.Description, dto.StartAt, dto.EndAt, dto.TotalSeats);
 
-		Assert.True(booking1.result);
-		Assert.True(booking2.result);
-		Assert.NotNull(booking1.booking);
-		Assert.NotNull(booking2.booking);
-		Assert.Equal(evt.Id, booking1.booking.EventId);
-		Assert.Equal(evt.Id, booking2.booking.EventId);
-		Assert.NotEqual(booking1.booking.Id, booking2.booking.Id);
-		Cleanup(db);
+		eventRepo.Setup(r => r.AddAsync(It.IsAny<Event>()))
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
+
+		var added = await eventService.CreateEventAsync(dto);
+		Assert.True(added.IsSuccess);
+
+		var eventId = evt.Id;
+
+		var booking1 = new Booking(eventId);
+		var booking2 = new Booking(eventId);
+
+		bookingRepo.SetupSequence(r => r.AddBookingAsync(It.IsAny<Booking>()))
+			.Returns(Task.CompletedTask)
+			.Returns(Task.CompletedTask);
+
+		bookingRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		bookingRepo.Setup(r => r.GetBookingAsync(booking1.Id))
+			.ReturnsAsync(booking1);
+
+		bookingRepo.Setup(r => r.GetBookingAsync(booking2.Id))
+			.ReturnsAsync(booking2);
+
+		var result1 = await bookingService.CreateBookingAsync(eventId);
+		var result2 = await bookingService.CreateBookingAsync(eventId);
+
+		Assert.True(result1.IsSuccess);
+		Assert.True(result2.IsSuccess);
+
+		Assert.NotNull(result1.Value);
+		Assert.NotNull(result2.Value);
+
+		Assert.Equal(eventId, result1.Value.EventId);
+		Assert.Equal(eventId, result2.Value.EventId);
+
+		Assert.NotEqual(result1.Value.Id, result2.Value.Id);
+
+		bookingRepo.Verify(r => r.AddBookingAsync(It.IsAny<Booking>()), Times.Exactly(2));
+		bookingRepo.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
 	}
+
 
 	[Fact]
 	public async Task GetBookingByIdTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (_, bookingRepo, _, bookingService) = CreateServices();
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var added = await eventService.CreateEventAsync(evt);
-		Assert.True(added);
-		var booking = await bookingService.CreateBookingAsync(evt.Id);
-		Assert.True(booking.result);
-		Assert.NotNull(booking.booking);
+		var booking = new Booking(Guid.NewGuid());
 
-		var result = await bookingService.GetBookingByIdAsync(booking.booking.Id);
-		Assert.True(result.haveBooking);
-		Assert.NotNull(result.booking);
-		Cleanup(db);
+		bookingRepo.Setup(r => r.GetBookingAsync(booking.Id))
+			.ReturnsAsync(booking);
+
+		var result = await bookingService.GetBookingByIdAsync(booking.Id);
+
+		Assert.True(result.IsSuccess);
+		Assert.NotNull(result.Value);
+		Assert.Equal(booking.Id, result.Value.Id);
+		Assert.Equal(booking.EventId, result.Value.EventId);
 	}
 
 	[Fact]
 	public async Task CreateBookingWithWrongIdTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, _, bookingService) = CreateServices();
 
-		var booking = await bookingService.CreateBookingAsync(Guid.NewGuid());
-		Assert.False(booking.result);
-		Assert.Null(booking.booking);
-		Cleanup(db);
+		var wrongId = Guid.NewGuid();
+
+		eventRepo.Setup(r => r.GetByIdAsync(wrongId))
+			.ReturnsAsync((Event?)null);
+
+		var result = await bookingService.CreateBookingAsync(wrongId);
+
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
 	public async Task CreateBookingForRemovedEventTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, eventService, bookingService) = CreateServices();
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
 
-		await eventService.CreateEventAsync(evt);
+		var dto = new EventDto()
+		{
+			ID = evt.Id,
+			Title = evt.Title,
+			Description = evt.Description,
+			StartAt = evt.StartAt,
+			EndAt = evt.EndAt,
+			TotalSeats = evt.TotalSeats
+		};
 
-		var removed = await eventService.RemoveEvent(evt);
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
 
-		Assert.True(removed);
+		eventRepo.Setup(r => r.RemoveAsync(evt))
+			.Returns(Task.CompletedTask);
+
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var removed = await eventService.RemoveEvent(dto);
+		Assert.True(removed.IsSuccess);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync((Event?)null);
 
 		var result = await bookingService.CreateBookingAsync(evt.Id);
 
-		Assert.False(result.result);
-		Assert.Null(result.booking);
-		Cleanup(db);
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
 	public async Task GetBookingWithBrokenIdTest()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (_, bookingRepo, _, bookingService) = CreateServices();
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
-		var booking = new Booking(evt.Id);
-		var result = await bookingService.GetBookingByIdAsync(booking.Id);
-		Assert.False(result.haveBooking);
-		Assert.Null(result.booking);
-		Cleanup(db);
+		var brokenId = Guid.NewGuid();
+
+		bookingRepo.Setup(r => r.GetBookingAsync(brokenId))
+			.ReturnsAsync((Booking?)null);
+
+		var result = await bookingService.GetBookingByIdAsync(brokenId);
+
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
 	public async Task BookingStatusChangesAfterBackgroundProcessing()
 	{
-		var services = new ServiceCollection();
+		var eventRepo = new Mock<IEventRepository>();
+		var bookingRepo = new Mock<IBookingRepository>();
 
-		var dbName = "TestDb_" + Guid.NewGuid();
-
-		services.AddDbContext<AppDbContext>(options =>
-			options.UseInMemoryDatabase(dbName));
-
-		services.AddScoped<IEventRepository, EfEventRepository>();
-		services.AddScoped<IBookingRepository, EfBookingRepository>();
-		services.AddScoped<EventFilterService>();
-
-		services.AddScoped<IEventService, EventService>();
-		services.AddScoped<IBookingService, BookingService>();
-
-		var provider = services.BuildServiceProvider();
-
-		var db = provider.GetRequiredService<AppDbContext>();
-		var eventService = provider.GetRequiredService<IEventService>();
-		var bookingService = provider.GetRequiredService<IBookingService>();
-		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-		
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		await eventService.CreateEventAsync(evt);
+		var booking = new Booking(evt.Id);
 
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
-		Assert.True(result);
-		Assert.Equal(BookingStatus.Pending, booking.Status);
-
-		var bookingResult = await bookingService.GetBookingByIdAsync(booking.Id);
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
 		
+		bookingRepo.Setup(r => r.GetPendingAsync())
+			.ReturnsAsync(() => booking.Status == BookingStatus.Pending
+				? new List<Booking> { booking }
+				: new List<Booking>());
+		bookingRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var services = new ServiceCollection();
+		services.AddSingleton(eventRepo.Object);
+		services.AddSingleton(bookingRepo.Object);
+		var provider = services.BuildServiceProvider();
+		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+
 		var worker = new BackgroundBookingService(scopeFactory);
 
 		using var cts = new CancellationTokenSource();
-		var workerTask = worker.StartAsync(cts.Token);
+		var workerStartTask = worker.StartAsync(cts.Token);
 
-		await Task.Delay(100, cts.Token);
+		await Task.Delay(200, CancellationToken.None);
 
 		await cts.CancelAsync();
-		await workerTask;
+		await workerStartTask;
 
-		var (found, updated) = await bookingService.GetBookingByIdAsync(booking.Id);
-
-		Assert.True(found);
-		Assert.Equal(BookingStatus.Confirmed, updated.Status);
-		Assert.NotNull(updated.ProcessedAt);
-		Cleanup(db);
+		Assert.Equal(BookingStatus.Confirmed, booking.Status);
+		Assert.NotEqual(default, booking.ProcessedAt);
 	}
-
 
 	[Fact]
 	public async Task CreateBooking_DecreasesAvailableSeats()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		await eventService.CreateEventAsync(evt);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
 
 		var before = evt.AvailableSeats;
 
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var result = await bookingService.CreateBookingAsync(evt.Id);
 
-		Assert.True(result);
-		Assert.NotNull(booking);
-
-		var (found, updatedEvent) = await eventService.GetEventById(evt.Id);
-		Assert.True(found);
-		Assert.Equal(before - 1, updatedEvent.AvailableSeats);
-		Cleanup(db);
+		Assert.True(result.IsSuccess);
+		Assert.NotNull(result.Value);
+		Assert.Equal(before - 1, evt.AvailableSeats);
 	}
 
 	[Fact]
 	public async Task CreateSeveralBookings_UntilLimit_AllSuccessful()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		await eventService.CreateEventAsync(evt);
+		var totalSeats = 3;
+		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), totalSeats);
 
-		var (r1, b1) = await bookingService.CreateBookingAsync(evt.Id);
-		var (r2, b2) = await bookingService.CreateBookingAsync(evt.Id);
-		var (r3, b3) = await bookingService.CreateBookingAsync(evt.Id);
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
 
-		Assert.True(r1);
-		Assert.True(r2);
-		Assert.True(r3);
+		var b1 = await bookingService.CreateBookingAsync(evt.Id);
+		var b2 = await bookingService.CreateBookingAsync(evt.Id);
+		var b3 = await bookingService.CreateBookingAsync(evt.Id);
 
-		Assert.NotNull(b1);
-		Assert.NotNull(b2);
-		Assert.NotNull(b3);
+		Assert.True(b1.IsSuccess);
+		Assert.True(b2.IsSuccess);
+		Assert.True(b3.IsSuccess);
 
-		Assert.NotEqual(b1.Id, b2.Id);
-		Assert.NotEqual(b2.Id, b3.Id);
-		Assert.NotEqual(b1.Id, b3.Id);
+		Assert.NotNull(b1.Value);
+		Assert.NotNull(b2.Value);
+		Assert.NotNull(b3.Value);
 
-		var (_, updatedEvent) = await eventService.GetEventById(evt.Id);
-		Assert.Equal(0, updatedEvent.AvailableSeats);
-		Cleanup(db);
+		Assert.NotEqual(b1.Value.Id, b2.Value.Id);
+		Assert.NotEqual(b2.Value.Id, b3.Value.Id);
+		Assert.NotEqual(b1.Value.Id, b3.Value.Id);
+
+		Assert.Equal(0, evt.AvailableSeats);
 	}
 
 	[Fact]
 	public async Task CreateBooking_WhenSeatsExhausted_ThrowsNoAvailableSeatsException()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 1);
-		await eventService.CreateEventAsync(evt);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
 
 		var first = await bookingService.CreateBookingAsync(evt.Id);
-		Assert.True(first.result);
+		Assert.True(first.IsSuccess);
 
 		await Assert.ThrowsAsync<NoAvailableSeatsException>(() => bookingService.CreateBookingAsync(evt.Id));
-		Cleanup(db);
 	}
 
 	[Fact]
 	public async Task CreateBooking_ForNonExistingEvent_ReturnsFalse()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, _, bookingService) = CreateServices();
 
 		var id = Guid.NewGuid();
 
-		var (result, booking) = await bookingService.CreateBookingAsync(id);
+		eventRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Event?)null);
 
-		Assert.False(result);
-		Assert.Null(booking);
-		Cleanup(db);
+		var result = await bookingService.CreateBookingAsync(id);
+
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
 	public async Task CreateBooking_NoSeatsLeft_ThrowsNoAvailableSeatsException()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, _, _, bookingService) = CreateServices();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 0);
-		await eventService.CreateEventAsync(evt);
 
-		await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>  bookingService.CreateBookingAsync(evt.Id));
-		Cleanup(db);
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+
+		await Assert.ThrowsAsync<NoAvailableSeatsException>(() => bookingService.CreateBookingAsync(evt.Id));
 	}
 
 	[Fact]
-	public async Task Booking_Confirm_SetsStatusAndProcessedAt()
+	public void Booking_Confirm_SetsStatusAndProcessedAt()
 	{
-		var (db, eventService, bookingService) = CreateServices();
-
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		await eventService.CreateEventAsync(evt);
-
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
-
-		Assert.True(result);
+		var booking = new Booking(Guid.NewGuid());
 
 		booking.Confirm();
 
 		Assert.Equal(BookingStatus.Confirmed, booking.Status);
-		Assert.NotNull(booking.ProcessedAt);
-		Cleanup(db);
+		Assert.NotEqual(default, booking.ProcessedAt);
 	}
 
 	[Fact]
-	public async Task Booking_Reject_SetsStatusAndProcessedAt()
+	public void Booking_Reject_SetsStatusAndProcessedAt()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var booking = new Booking(Guid.NewGuid());
 
-		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		await eventService.CreateEventAsync(evt);
-
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
-
-		Assert.True(result);
 		booking.Reject();
 
 		Assert.Equal(BookingStatus.Rejected, booking.Status);
-		Assert.NotNull(booking.ProcessedAt);
-		Cleanup(db);
+		Assert.NotEqual(default, booking.ProcessedAt);
 	}
 
 	[Fact]
 	public async Task Booking_Reject_ThenReleaseSeats_RestoresAvailableSeats()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 1);
-		await eventService.CreateEventAsync(evt);
 
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		Booking? captured = null;
 
-		Assert.True(result);
-		var (_, updatedEventBefore) = await eventService.GetEventById(evt.Id);
-		Assert.Equal(0, updatedEventBefore.AvailableSeats);
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
+			.Callback<Booking>(b => captured = b)
+			.Returns(Task.CompletedTask);
 
-		booking.Reject();
-		updatedEventBefore.ReleaseSeats();
+		var result = await bookingService.CreateBookingAsync(evt.Id);
+		Assert.True(result.IsSuccess);
+		Assert.NotNull(captured);
 
-		bool isUpdated = await eventService.TryUpdateEvent(updatedEventBefore);
-		Assert.True(isUpdated);
+		Assert.Equal(0, evt.AvailableSeats);
 
-		var (_, updatedEventAfter) = await eventService.GetEventById(evt.Id);
-		Assert.Equal(1, updatedEventAfter.AvailableSeats);
-		Cleanup(db);
+		captured!.Reject();
+		evt.ReleaseSeats();
+
+		Assert.Equal(BookingStatus.Rejected, captured.Status);
+		Assert.Equal(1, evt.AvailableSeats);
 	}
 
 	[Fact]
 	public async Task Booking_Reject_ThenReleaseSeats_AllowsNewBooking()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 1);
-		await eventService.CreateEventAsync(evt);
 
-		var (result1, booking1) = await bookingService.CreateBookingAsync(evt.Id);
-		
-		Assert.True(result1);
-		
-		var (hasEvt, evtData)= await eventService.GetEventById(evt.Id);
-		
-		Assert.True(hasEvt);
+		Booking? captured = null;
 
-		booking1.Reject();
-		evtData.ReleaseSeats();
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
+			.Callback<Booking>(b => captured = b)
+			.Returns(Task.CompletedTask);
 
-		var isUpdated = await eventService.TryUpdateEvent( evtData);
-		Assert.True(isUpdated);
-		
-		var (result2, booking2) = await bookingService.CreateBookingAsync(evt.Id);
+		var result1 = await bookingService.CreateBookingAsync(evt.Id);
+		Assert.True(result1.IsSuccess);
+		Assert.NotNull(captured);
 
-		Assert.True(result2);
-		Assert.NotNull(booking2);
-		Assert.Equal(evt.Id, booking2.EventId);
-		Cleanup(db);
+		captured!.Reject();
+		evt.ReleaseSeats();
+
+		var result2 = await bookingService.CreateBookingAsync(evt.Id);
+
+		Assert.True(result2.IsSuccess);
+		Assert.NotNull(result2.Value);
+		Assert.Equal(evt.Id, result2.Value.EventId);
 	}
 
 	[Fact]
 	public async Task ConcurrentBookings_NoOverbookingOccurs()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
 		var totalSeats = 5;
-
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), totalSeats);
-		await eventService.CreateEventAsync(evt);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
 
 		var exceptions = 0;
 		var successes = 0;
@@ -404,8 +470,8 @@ public class BookingTests
 		{
 			try
 			{
-				var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
-				if (result)
+				var result = await bookingService.CreateBookingAsync(evt.Id);
+				if (result.IsSuccess)
 					Interlocked.Increment(ref successes);
 			}
 			catch (NoAvailableSeatsException)
@@ -418,39 +484,35 @@ public class BookingTests
 
 		Assert.Equal(totalSeats, successes);
 		Assert.Equal(20 - totalSeats, exceptions);
-
-		var (haveElement, updatedEvent) = await eventService.GetEventById(evt.Id);
-
-		Assert.True(haveElement);
-		Assert.Equal(0, updatedEvent.AvailableSeats);
-		Cleanup(db);
+		Assert.Equal(0, evt.AvailableSeats);
 	}
 
 
 	[Fact]
 	public async Task ConcurrentBookings_AllIdsAreUnique()
 	{
-		var (db, eventService, bookingService) = CreateServices();
+		var (eventRepo, bookingRepo, _, bookingService) = CreateServices();
 
 		var totalSeats = 10;
-
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), totalSeats);
-		await eventService.CreateEventAsync(evt);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
+		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
 
 		var ids = new ConcurrentBag<Guid>();
 
 		var tasks = Enumerable.Range(0, totalSeats).Select(async _ =>
 		{
-			var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
+			var result = await bookingService.CreateBookingAsync(evt.Id);
 
-			Assert.True(result);
-			ids.Add(booking.Id);
+			Assert.True(result.IsSuccess);
+			ids.Add(result.Value!.Id);
 		});
 
 		await Task.WhenAll(tasks);
 
 		Assert.Equal(totalSeats, ids.Count);
 		Assert.Equal(totalSeats, ids.Distinct().Count());
-		Cleanup(db);
 	}
 }

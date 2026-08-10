@@ -14,6 +14,7 @@ public class EventDto : IValidatableObject
 	public DateTime EndAt { get; set; }
 	
 	public int TotalSeats { get; set; }
+	public int AvailableSeats { get; set; }
 
 	[JsonConstructor]
 	public EventDto()

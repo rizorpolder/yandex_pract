@@ -6,6 +6,7 @@ using Application.Services.BookingService;
 using Domain.Exceptions;
 using Domain.Models.Booking;
 using Domain.Models.Event;
+using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,6 @@ using Microsoft.Extensions.DependencyInjection;
 using yandex_pract.CustomEventService;
 using yandex_pract.DbContext;
 using yandex_pract.Filters;
-using yandex_pract.Services.BookingService;
 
 namespace IntegrationTest.Tests;
 
