@@ -12,14 +12,13 @@
         <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.assets.json"/>
         <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.packagespec.json"/>
     </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\..\Presentation\Presentation.csproj" />
-      <ProjectReference Include="..\Presentation\Presentation.csproj" />
-    </ItemGroup>
-
+    
     <ItemGroup>
       <Folder Include="CustomException\" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\Presentation\Presentation.csproj" />
     </ItemGroup>
 
 </Project>

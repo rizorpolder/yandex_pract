@@ -1,4 +1,6 @@
-﻿using Infrastructure.Interceptors;
+﻿using Application.Services.Abstraction.Repositories;
+using Infrastructure.Interceptors;
+using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -9,11 +11,9 @@ namespace Infrastructure;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+	public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
 	{
-		var provider = services.BuildServiceProvider();
-		var config = provider.GetRequiredService<IConfiguration>();
-		var connectionString = config.GetConnectionString("DefaultConnection");
+		var connectionString = configuration.GetConnectionString("DefaultConnection");
 
 		services.AddDbContext<AppDbContext>(options =>
 		{
@@ -21,6 +21,8 @@ public static class ServiceCollectionExtensions
 			options.AddInterceptors(new DateTimeInterceptor());
 		});
 
+		services.AddScoped<IEventRepository, EfEventRepository>();
+		services.AddScoped<IBookingRepository, EfBookingRepository>();
 
 		return services;
 	}

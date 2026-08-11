@@ -3,6 +3,7 @@ using Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Presentation.Middleware;
@@ -12,7 +13,7 @@ namespace Presentation;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPresentation(this IServiceCollection services)
+	public static IServiceCollection AddPresentation(this IServiceCollection services,IConfiguration configuration)
 	{
 		services.AddControllers();
 
@@ -22,7 +23,7 @@ public static class ServiceCollectionExtensions
 				apiDesc.TryGetMethodInfo(out var methodInfo) ? methodInfo.Name : null);
 		});
 
-		services.AddInfrastructure();
+		services.AddInfrastructure(configuration);
 		services.AddApplication();
 
 		return services;
@@ -30,6 +31,8 @@ public static class ServiceCollectionExtensions
 
 	public static IApplicationBuilder UsePresentation(this IApplicationBuilder app)
 	{
+		app.UseInfrastructure();
+
 		app.UseMiddleware<MyCustomMiddleware>();
 
 		if (app.ApplicationServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
