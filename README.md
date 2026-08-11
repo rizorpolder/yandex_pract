@@ -2,6 +2,7 @@
 
 ## Оглавление
 
+- [Архитектура проекта](#архитектура-проекта)
 - [Требования](#требования)
 - [Установка](#установка)
 - [Настройка подключения к БД](#настройка-подключения-к-бд)
@@ -10,6 +11,110 @@
 - [Примитивы синхронизации](#примитивы-синхронизации-использованные-в-проекте)
 - [Тестирование](#тестирование)
 - [Ошибки](#ошибки)
+
+## Архитектура проекта
+
+Проект построен по принципам слоистой (Clean/Onion) архитектуры и разделён на пять проектов/слоёв. Ключевое
+правило — зависимости идут только "внутрь", к домену: `Domain` ни от кого не зависит, `Application` зависит
+только от `Domain`, `Infrastructure` реализует интерфейсы `Application`, `Presentation` связывает
+`Infrastructure`+`Application` через DI и содержит контроллеры/middleware, а `Web` — тонкий исполняемый хост
+(`Program.cs`), который лишь подключает `Presentation`.
+
+```
+Web (host, Program.cs)
+        │
+        ▼
+Presentation
+        │
+        ▼
+Infrastructure ──► Application ──► Domain
+```
+
+### Domain
+
+Ядро приложения: доменные сущности и бизнес-правила, не зависящие ни от EF Core, ни от ASP.NET, ни от какого-либо
+внешнего слоя.
+
+- `Domain.Models.Event.Event` — сущность события: инкапсулирует `Title`, `Description`, `StartAt`/`EndAt`,
+  `TotalSeats`/`AvailableSeats`; резервирование и освобождение мест (`TryReserveSeats`, `ReleaseSeats`) и
+  обновление полей (`UpdateEvent`) — это методы самой сущности, а не сервисов, чтобы бизнес-правила не
+  "утекали" наружу.
+- `Domain.Models.Booking.Booking` — сущность бронирования: `Id`, `EventId`, `Status`, `CreatedAt`, `ProcessedAt`,
+  переходы состояния через `Confirm()`/`Reject()`.
+- `Domain.Exceptions` — доменные исключения, например `NoAvailableSeatsException`, которое выбрасывается при
+  попытке забронировать место в событии без свободных мест.
+
+### Application
+
+Слой сценариев использования (use cases) и бизнес-логики поверх домена. Не знает про EF Core или конкретную
+БД — работает только через абстракции репозиториев.
+
+- `Application.Services.Abstraction.Repositories` — интерфейсы `IEventRepository`, `IBookingRepository`,
+  описывающие контракт хранилища (CRUD-операции над `Event`/`Booking`), которые реализует уже `Infrastructure`.
+- `Application.Services.Abstraction.Services` — интерфейсы `IEventService`, `IBookingService`.
+- `Application.Services.Abstraction.RequestResult` — обёртка `Result<T>` (`IsSuccess`/`Value`/`ErrorMessage`)
+  для единообразной передачи результата операций без исключений в качестве управления потоком.
+- `Application.Services.BookingService` — реализация `IBookingService`: создание бронирования с проверкой мест
+  (`TryReserveSeats`) и защитой от гонок через `SemaphoreSlim`, получение бронирования по id.
+- `Application.Services.BackgroundBookingService` — фоновый `BackgroundService`, асинхронно подтверждающий
+  `Pending`-бронирования (`Confirm`) либо отклоняющий их с возвратом мест (`Reject` + `ReleaseSeats`) при сбое
+  или отмене.
+- `Application.Services.Mapping` — внутренние (`internal`) мапперы `EventMapper`/`BookingMapper` между доменными
+  сущностями и DTO уровня Application/Presentation.
+- Сервис `EventService` (реализация `IEventService`) и связанные с ним `EventDto`, `EventFilterService` — по
+  историческим причинам всё ещё живут в неймспейсе `yandex_pract.*` (это исходный неймспейс проекта до
+  разделения на слои), хотя по назначению они относятся именно к слою Application. Это единственное заметное
+  расхождение между физическим неймспейсом и логическим слоем — стоит иметь в виду при дальнейшем рефакторинге.
+
+### Infrastructure
+
+Реализация абстракций `Application` поверх конкретной технологии хранения — EF Core + PostgreSQL.
+
+- `Infrastructure.Repositories.EfEventRepository` / `EfBookingRepository` — реализации `IEventRepository` /
+  `IBookingRepository` через `AppDbContext`.
+- `yandex_pract.DbContext.AppDbContext` — EF Core `DbContext` с наборами `Events`/`Bookings`.
+- `yandex_pract.Interceptors.DateTimeInterceptor` — перехватчик EF Core для нормализации `DateTime`-полей
+  (например, приведение к UTC) при сохранении.
+- Миграции EF Core, описывающие схему БД (таблицы `events`/`bookings`, CHECK-ограничения на количество мест и
+  временной диапазон, внешние ключи, индексы — подробнее в разделе "Тестирование" → `MigrationsTests`).
+
+### Presentation
+
+Класс-библиотека со всем, что относится к HTTP-слою: контроллеры, middleware, конфигурация DI и Swagger.
+
+- `Presentation.ServiceCollectionExtensions.AddPresentation(configuration)` — регистрирует контроллеры,
+  Swagger, и вызывает `AddInfrastructure(configuration)` + `AddApplication()`, то есть именно здесь
+  собираются воедино все нижележащие слои.
+- `Presentation.ServiceCollectionExtensions.UsePresentation()` — настраивает middleware-пайплайн: применяет
+  миграции БД через `UseInfrastructure()`, подключает кастомный `MyCustomMiddleware`, Swagger UI (только в
+  Development), `UseHttpsRedirection`, `UseRouting`.
+- `Presentation.ServiceCollectionExtensions.MapPresentationEndpoints()` — регистрирует маршруты контроллеров
+  (`MapControllers()`).
+- `Presentation.Middleware` — кастомные middleware (например, глобальная обработка ошибок, см. раздел
+  "Ошибки" ниже).
+
+Сам `Presentation` не содержит `Program.cs` и не запускается напрямую — это переиспользуемая библиотека,
+которую подключает исполняемый хост.
+
+### Web
+
+Тонкий исполняемый проект (`src/Web/Web.csproj`) — единственная точка входа приложения. Содержит только
+`Program.cs`:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddPresentation(builder.Configuration);
+
+var app = builder.Build();
+app.UsePresentation();
+app.MapPresentationEndpoints();
+app.Run();
+```
+
+Сам `Web` не содержит бизнес-логики, контроллеров или конфигурации DI — вся эта работа делегирована в
+`Presentation` (см. выше). Разделение `Web`/`Presentation` позволяет, например, переиспользовать
+`Presentation` в другом хосте (тестовом `WebApplicationFactory`, воркере и т.п.) без необходимости
+дублировать настройку DI.
 
 ## Требования
 
@@ -25,7 +130,7 @@
 * Выполнить команду dotnet build
 * Выполнить команду dotnet run (для запуска основного проекта
 
-<code>dotnet run --project src/Backend/Backend.csproj</code>)
+<code>dotnet run --project src/Web/Web.csproj</code>)
 
 * перейти по ulr: http://localhost:5000/swagger/index.html
 
@@ -49,27 +154,34 @@
 3. При необходимости строку подключения можно переопределить через переменную окружения или `dotnet user-secrets`, не
    храня пароль в репозитории:
 
-       dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=127.0.0.1;Port=5432;Database=events_db;Username=postgres;Password=postgres"
+       dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=127.0.0.1;Port=5432;Database=events_db;Username=postgres;Password=postgres" --project src/Web/Web.csproj
 
 Управление схемой БД (EF Core Migrations)
 Схема базы данных управляется миграциями EF Core.
 При изменении моделей необходимо создавать новую миграцию и применять её к базе данных.
 
+`AppDbContext` живёт в проекте `Infrastructure`, а запускаемый (startup) проект — `Web`. Поэтому команды `dotnet
+ef` теперь принимают два флага: `--project` (где искать/создавать миграции) и `--startup-project` (откуда брать
+конфигурацию и DI для применения миграций).
+
+> Путь к `Infrastructure.csproj` ниже дан по аналогии с `src/Web/Web.csproj` (соседняя папка в `src/`) — если у
+> вас он лежит иначе, поправьте путь под свою структуру.
+
 Создание миграции
 
-    dotnet ef migrations add InitialMigration --project src/Backend/Backend.csproj</code>  
+    dotnet ef migrations add InitialMigration --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
 
 Применение миграций
 
-    dotnet ef database update --project src/Backend/Backend.csproj
+    dotnet ef database update --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
 
 Откат миграции
 
-     dotnet ef database update PreviousMigrationName
+     dotnet ef database update PreviousMigrationName --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
 
 Удаление последней миграции
 
-    dotnet ef migrations remove --project src/Backend/Backend.csproj
+    dotnet ef migrations remove --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
 
 <b>Важно</b>  
 В приложении используется Database.MigrateAsync(), а не EnsureCreated().

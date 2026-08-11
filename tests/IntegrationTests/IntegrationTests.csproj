@@ -26,6 +26,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Backend\Backend.csproj" />
+      <ProjectReference Include="..\..\src\Web\Web.csproj" />
     </ItemGroup>
 </Project>

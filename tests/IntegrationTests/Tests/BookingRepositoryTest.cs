@@ -1,17 +1,20 @@
 using System.Collections.Concurrent;
+using Application.Services.Abstraction.Repositories;
+using Application.Services.Abstraction.Services;
+using Application.Services.BackgroundBookingService;
+using Application.Services.BookingService;
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
+using Domain.Exceptions;
+using Domain.Models.Booking;
+using Domain.Models.Event;
+using Infrastructure.Contexts;
+using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Models;
-using yandex_pract.CustomException;
-using yandex_pract.DbContext;
-using yandex_pract.DbContext.Interfaces;
-using yandex_pract.Filters;
-using yandex_pract.Services.BackgroundBookingService;
-using yandex_pract.Services.BookingService;
-using yandex_pract.Services.BookingService.Models;
 
 namespace IntegrationTest.Tests;
 
@@ -20,6 +23,15 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 {
 	protected override string[] TablesToTruncate =>
 		["bookings", "events"];
+
+	private static EventDto ToDto(Event evt) => new EventDto
+	{
+		Title = evt.Title,
+		Description = evt.Description,
+		StartAt = evt.StartAt,
+		EndAt = evt.EndAt,
+		TotalSeats = evt.TotalSeats
+	};
 
 	[Fact]
 	public async Task CreateSingleBooking_ShouldCreateBookingAndDecreaseSeats()
@@ -34,21 +46,25 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
 
-		Assert.True(await eventService.CreateEventAsync(evt));
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var bookingResult = await bookingService.CreateBookingAsync(eventId);
 
-		Assert.True(result);
-		Assert.NotNull(booking);
-		Assert.Equal(evt.Id, booking.EventId);
+		Assert.True(bookingResult.IsSuccess);
+		Assert.NotNull(bookingResult.Value);
+		Assert.Equal(eventId, bookingResult.Value.EventId);
 
-		var (_, updatedEvent) = await eventService.GetEventById(evt.Id);
-		Assert.Equal(2, updatedEvent.AvailableSeats);
+		var updatedEvent = await eventService.GetEventById(eventId);
+		Assert.True(updatedEvent.IsSuccess);
+		Assert.Equal(2, updatedEvent.Value.AvailableSeats);
 	}
 
 	[Fact]
@@ -64,20 +80,23 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		var b1 = await bookingService.CreateBookingAsync(evt.Id);
-		var b2 = await bookingService.CreateBookingAsync(evt.Id);
+		var b1 = await bookingService.CreateBookingAsync(eventId);
+		var b2 = await bookingService.CreateBookingAsync(eventId);
 
-		Assert.True(b1.result);
-		Assert.True(b2.result);
+		Assert.True(b1.IsSuccess);
+		Assert.True(b2.IsSuccess);
 
-		Assert.NotEqual(b1.booking.Id, b2.booking.Id);
+		Assert.NotEqual(b1.Value.Id, b2.Value.Id);
 	}
 
 	[Fact]
@@ -93,19 +112,22 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
 
-		var (_, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var booking = await bookingService.CreateBookingAsync(created.Value.ID);
+		Assert.True(booking.IsSuccess);
 
-		var (found, loaded) = await bookingService.GetBookingByIdAsync(booking.Id);
+		var loaded = await bookingService.GetBookingByIdAsync(booking.Value.Id);
 
-		Assert.True(found);
-		Assert.NotNull(loaded);
+		Assert.True(loaded.IsSuccess);
+		Assert.NotNull(loaded.Value);
 	}
 
 	[Fact]
@@ -119,10 +141,10 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var (result, booking) = await bookingService.CreateBookingAsync(Guid.NewGuid());
+		var result = await bookingService.CreateBookingAsync(Guid.NewGuid());
 
-		Assert.False(result);
-		Assert.Null(booking);
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
@@ -138,18 +160,23 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
 
-		await eventService.CreateEventAsync(evt);
-		await eventService.RemoveEvent(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var removed = await eventService.RemoveEvent(created.Value);
+		Assert.True(removed.IsSuccess);
 
-		Assert.False(result);
-		Assert.Null(booking);
+		var result = await bookingService.CreateBookingAsync(eventId);
+
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
@@ -163,10 +190,10 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var (found, booking) = await bookingService.GetBookingByIdAsync(Guid.NewGuid());
+		var result = await bookingService.GetBookingByIdAsync(Guid.NewGuid());
 
-		Assert.False(found);
-		Assert.Null(booking);
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
@@ -185,33 +212,52 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var provider = services.BuildServiceProvider();
 
-		var eventService = provider.GetRequiredService<IEventService>();
-		var bookingService = provider.GetRequiredService<IBookingService>();
+		using var setupScope = provider.CreateScope();
+		var eventService = setupScope.ServiceProvider.GetRequiredService<IEventService>();
+		var bookingService = setupScope.ServiceProvider.GetRequiredService<IBookingService>();
 		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
 
-		var (_, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var booking = await bookingService.CreateBookingAsync(created.Value.ID);
+		Assert.True(booking.IsSuccess);
 
 		var worker = new BackgroundBookingService(scopeFactory);
+		
+		await worker.StartAsync(CancellationToken.None);
 
-		using var cts = new CancellationTokenSource();
-		var task = worker.StartAsync(cts.Token);
+		BookingStatus? finalStatus = null;
+		DateTime? processedAt = null;
 
-		await Task.Delay(200);
-		cts.Cancel();
-		await task;
+		for (var attempt = 0; attempt < 50; attempt++)
+		{
+			using var pollScope = provider.CreateScope();
+			var pollBookingService = pollScope.ServiceProvider.GetRequiredService<IBookingService>();
 
-		var (found, updated) = await bookingService.GetBookingByIdAsync(booking.Id);
+			var polled = await pollBookingService.GetBookingByIdAsync(booking.Value.Id);
+			Assert.True(polled.IsSuccess);
 
-		Assert.True(found);
-		Assert.Equal(BookingStatus.Confirmed, updated.Status);
-		Assert.NotNull(updated.ProcessedAt);
+			if (polled.Value.Status != BookingStatus.Pending)
+			{
+				finalStatus = polled.Value.Status;
+				processedAt = polled.Value.ProcessedAt;
+				break;
+			}
+
+			await Task.Delay(100);
+		}
+
+		await worker.StopAsync(CancellationToken.None);
+
+		Assert.Equal(BookingStatus.Confirmed, finalStatus);
+		Assert.NotEqual(default, processedAt);
 	}
 
 	[Fact]
@@ -227,20 +273,24 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		var before = evt.AvailableSeats;
+		var before = created.Value.AvailableSeats;
 
-		await bookingService.CreateBookingAsync(evt.Id);
+		await bookingService.CreateBookingAsync(eventId);
 
-		var (_, updated) = await eventService.GetEventById(evt.Id);
+		var updated = await eventService.GetEventById(eventId);
 
-		Assert.Equal(before - 1, updated.AvailableSeats);
+		Assert.True(updated.IsSuccess);
+		Assert.Equal(before - 1, updated.Value.AvailableSeats);
 	}
 
 	[Fact]
@@ -256,19 +306,23 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		await bookingService.CreateBookingAsync(evt.Id);
-		await bookingService.CreateBookingAsync(evt.Id);
-		await bookingService.CreateBookingAsync(evt.Id);
+		await bookingService.CreateBookingAsync(eventId);
+		await bookingService.CreateBookingAsync(eventId);
+		await bookingService.CreateBookingAsync(eventId);
 
-		var (_, updated) = await eventService.GetEventById(evt.Id);
-		Assert.Equal(0, updated.AvailableSeats);
+		var updated = await eventService.GetEventById(eventId);
+		Assert.True(updated.IsSuccess);
+		Assert.Equal(0, updated.Value.AvailableSeats);
 	}
 
 	[Fact]
@@ -284,17 +338,20 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			1);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		await bookingService.CreateBookingAsync(evt.Id);
+		await bookingService.CreateBookingAsync(eventId);
 
 		await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
-			bookingService.CreateBookingAsync(evt.Id));
+			bookingService.CreateBookingAsync(eventId));
 	}
 
 	[Fact]
@@ -308,10 +365,10 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var (result, booking) = await bookingService.CreateBookingAsync(Guid.NewGuid());
+		var result = await bookingService.CreateBookingAsync(Guid.NewGuid());
 
-		Assert.False(result);
-		Assert.Null(booking);
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
 	}
 
 	[Fact]
@@ -327,15 +384,17 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			0);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
 
 		await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
-			bookingService.CreateBookingAsync(evt.Id));
+			bookingService.CreateBookingAsync(created.Value.ID));
 	}
 
 	[Fact]
@@ -351,19 +410,26 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
 
-		var (_, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID);
+		Assert.True(bookingResult.IsSuccess);
+
+		var booking = await bookingRepo.GetBookingAsync(bookingResult.Value.Id);
+		Assert.NotNull(booking);
 
 		booking.Confirm();
+		await bookingRepo.SaveChangesAsync();
 
 		Assert.Equal(BookingStatus.Confirmed, booking.Status);
-		Assert.NotNull(booking.ProcessedAt);
+		Assert.NotEqual(default, booking.ProcessedAt);
 	}
 
 	[Fact]
@@ -379,24 +445,32 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			1);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		var (_, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var bookingResult = await bookingService.CreateBookingAsync(eventId);
+		Assert.True(bookingResult.IsSuccess);
 
+		var booking = await bookingRepo.GetBookingAsync(bookingResult.Value.Id);
+		Assert.NotNull(booking);
 		booking.Reject();
+		await bookingRepo.SaveChangesAsync();
 
-		var (_, updatedEvent) = await eventService.GetEventById(evt.Id);
-		updatedEvent.ReleaseSeats();
+		var storedEvent = await eventRepo.GetByIdAsync(eventId);
+		Assert.NotNull(storedEvent);
+		storedEvent.ReleaseSeats();
+		await eventRepo.SaveChangesAsync();
 
-		Assert.True(await eventService.TryUpdateEvent(updatedEvent));
-
-		var (_, after) = await eventService.GetEventById(evt.Id);
-		Assert.Equal(1, after.AvailableSeats);
+		var after = await eventService.GetEventById(eventId);
+		Assert.True(after.IsSuccess);
+		Assert.Equal(1, after.Value.AvailableSeats);
 	}
 
 	[Fact]
@@ -412,26 +486,33 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			1);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
-		var (_, booking1) = await bookingService.CreateBookingAsync(evt.Id);
+		var booking1Result = await bookingService.CreateBookingAsync(eventId);
+		Assert.True(booking1Result.IsSuccess);
 
+		var booking1 = await bookingRepo.GetBookingAsync(booking1Result.Value.Id);
+		Assert.NotNull(booking1);
 		booking1.Reject();
+		await bookingRepo.SaveChangesAsync();
 
-		var (_, updatedEvent) = await eventService.GetEventById(evt.Id);
-		updatedEvent.ReleaseSeats();
+		var storedEvent = await eventRepo.GetByIdAsync(eventId);
+		Assert.NotNull(storedEvent);
+		storedEvent.ReleaseSeats();
+		await eventRepo.SaveChangesAsync();
 
-		Assert.True(await eventService.TryUpdateEvent(updatedEvent));
+		var result2 = await bookingService.CreateBookingAsync(eventId);
 
-		var (result2, booking2) = await bookingService.CreateBookingAsync(evt.Id);
-
-		Assert.True(result2);
-		Assert.NotNull(booking2);
+		Assert.True(result2.IsSuccess);
+		Assert.NotNull(result2.Value);
 	}
 
 	[Fact]
@@ -449,12 +530,15 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var totalSeats = 5;
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			totalSeats);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
 		var successes = 0;
 		var exceptions = 0;
@@ -463,8 +547,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		{
 			try
 			{
-				var (result, _) = await bookingService.CreateBookingAsync(evt.Id);
-				if (result) Interlocked.Increment(ref successes);
+				var result = await bookingService.CreateBookingAsync(eventId);
+				if (result.IsSuccess) Interlocked.Increment(ref successes);
 			}
 			catch (NoAvailableSeatsException)
 			{
@@ -493,20 +577,23 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var totalSeats = 10;
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			totalSeats);
 
-		await eventService.CreateEventAsync(evt);
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+		var eventId = created.Value.ID;
 
 		var ids = new ConcurrentBag<Guid>();
 
 		var tasks = Enumerable.Range(0, totalSeats).Select(async _ =>
 		{
-			var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
-			Assert.True(result);
-			ids.Add(booking.Id);
+			var result = await bookingService.CreateBookingAsync(eventId);
+			Assert.True(result.IsSuccess);
+			ids.Add(result.Value!.Id);
 		});
 
 		await Task.WhenAll(tasks);

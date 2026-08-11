@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>yandex_pract</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <_ContentIncludedByDefault Remove="EventServiceTest\obj\EventServiceTest.csproj.nuget.dgspec.json"/>
+        <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.assets.json"/>
+        <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.packagespec.json"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="CustomException\" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\Presentation\Presentation.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+</Project>

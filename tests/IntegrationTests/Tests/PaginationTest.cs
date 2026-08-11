@@ -1,10 +1,9 @@
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
+using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Models;
-using yandex_pract.DbContext;
-using yandex_pract.Filters;
 
 namespace IntegrationTest.Tests;
 
@@ -27,14 +26,17 @@ public sealed class PaginationTest(PostgresContainerFixture fixture) : ABaseTest
 
 			for (int i = 0; i < 25; i++)
 			{
-				var evt = new Event(
-					$"title {i}",
-					"desc",
-					DateTime.UtcNow,
-					DateTime.UtcNow.AddMinutes(1),
-					10);
+				var dto = new EventDto
+				{
+					Title = $"title {i}",
+					Description = "desc",
+					StartAt = DateTime.UtcNow,
+					EndAt = DateTime.UtcNow.AddMinutes(1),
+					TotalSeats = 10
+				};
 
-				await eventService.CreateEventAsync(evt);
+				var created = await eventService.CreateEventAsync(dto);
+				Assert.True(created.IsSuccess);
 			}
 		}
 

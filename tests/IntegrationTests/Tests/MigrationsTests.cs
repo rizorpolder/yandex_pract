@@ -1,12 +1,13 @@
+using Application.Services.BookingService;
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
+using Domain.Models.Booking;
+using Domain.Models.Event;
+using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Models;
-using yandex_pract.DbContext;
-using yandex_pract.Filters;
-using yandex_pract.Services.BookingService;
-using yandex_pract.Services.BookingService.Models;
 
 namespace IntegrationTest.Tests;
 
@@ -129,18 +130,22 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title",
-			"desc",
-			DateTime.UtcNow,
-			DateTime.UtcNow.AddMinutes(1),
-			5);
+		var dto = new EventDto
+		{
+			Title = "title",
+			Description = "desc",
+			StartAt = DateTime.UtcNow,
+			EndAt = DateTime.UtcNow.AddMinutes(1),
+			TotalSeats = 5
+		};
 
-		Assert.True(await eventService.CreateEventAsync(evt));
+		var created = await eventService.CreateEventAsync(dto);
+		Assert.True(created.IsSuccess);
 
-		var (result, booking) = await bookingService.CreateBookingAsync(evt.Id);
+		var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID);
 
-		Assert.True(result);
-		Assert.NotNull(booking);
+		Assert.True(bookingResult.IsSuccess);
+		Assert.NotNull(bookingResult.Value);
 	}
 
 	[Fact]
@@ -155,7 +160,7 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 			DateTime.UtcNow.AddMinutes(1),
 			10);
 
-		evt.ReleaseSeats(100); // available_seats = 110
+		evt.ReleaseSeats(100); 
 
 		ctx.Events.Add(evt);
 
