@@ -46,7 +46,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
@@ -79,7 +80,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
@@ -110,7 +112,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
@@ -157,7 +160,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddSeconds(10),
 			3);
@@ -213,7 +217,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var bookingService = setupScope.ServiceProvider.GetRequiredService<IBookingService>();
 		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
@@ -225,19 +230,34 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		Assert.True(booking.IsSuccess);
 
 		var worker = new BackgroundBookingService(scopeFactory);
+		
+		await worker.StartAsync(CancellationToken.None);
 
-		using var cts = new CancellationTokenSource();
-		var task = worker.StartAsync(cts.Token);
+		BookingStatus? finalStatus = null;
+		DateTime? processedAt = null;
 
-		await Task.Delay(200);
-		await cts.CancelAsync();
-		await task;
+		for (var attempt = 0; attempt < 50; attempt++)
+		{
+			using var pollScope = provider.CreateScope();
+			var pollBookingService = pollScope.ServiceProvider.GetRequiredService<IBookingService>();
 
-		var updated = await bookingService.GetBookingByIdAsync(booking.Value.Id);
+			var polled = await pollBookingService.GetBookingByIdAsync(booking.Value.Id);
+			Assert.True(polled.IsSuccess);
 
-		Assert.True(updated.IsSuccess);
-		Assert.Equal(BookingStatus.Confirmed, updated.Value.Status);
-		Assert.NotEqual(default, updated.Value.ProcessedAt);
+			if (polled.Value.Status != BookingStatus.Pending)
+			{
+				finalStatus = polled.Value.Status;
+				processedAt = polled.Value.ProcessedAt;
+				break;
+			}
+
+			await Task.Delay(100);
+		}
+
+		await worker.StopAsync(CancellationToken.None);
+
+		Assert.Equal(BookingStatus.Confirmed, finalStatus);
+		Assert.NotEqual(default, processedAt);
 	}
 
 	[Fact]
@@ -253,7 +273,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
@@ -285,7 +306,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
@@ -316,7 +338,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			1);
@@ -361,7 +384,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			0);
@@ -386,7 +410,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			3);
@@ -396,7 +421,7 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID);
 		Assert.True(bookingResult.IsSuccess);
-		
+
 		var booking = await bookingRepo.GetBookingAsync(bookingResult.Value.Id);
 		Assert.NotNull(booking);
 
@@ -420,7 +445,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			1);
@@ -460,7 +486,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var eventService = new EventService(eventRepo, filter);
 		var bookingService = new BookingService(bookingRepo, eventRepo);
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			1);
@@ -503,7 +530,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var totalSeats = 5;
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			totalSeats);
@@ -549,7 +577,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 
 		var totalSeats = 10;
 
-		var evt = new Event("title", "desc",
+		var evt = new Event("title",
+			"desc",
 			DateTime.UtcNow,
 			DateTime.UtcNow.AddMinutes(1),
 			totalSeats);
