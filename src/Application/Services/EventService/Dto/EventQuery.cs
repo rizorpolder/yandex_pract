@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace yandex_pract.CustomEventService.Dto;
+﻿namespace Application.Services.EventService.Dto;
 
 public class EventQuery
 {

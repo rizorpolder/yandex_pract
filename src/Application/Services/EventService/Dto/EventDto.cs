@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace yandex_pract.CustomEventService.Dto;
+namespace Application.Services.EventService.Dto;
 
 [Serializable]
 public class EventDto : IValidatableObject

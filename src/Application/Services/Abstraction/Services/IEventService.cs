@@ -1,5 +1,5 @@
 ﻿using Application.Services.Abstraction.RequestResult;
-using yandex_pract.CustomEventService.Dto;
+using Application.Services.EventService.Dto;
 
 namespace Application.Services.Abstraction.Services;
 

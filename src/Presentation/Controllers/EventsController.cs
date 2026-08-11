@@ -1,7 +1,7 @@
 ﻿using Application.Services.Abstraction.Services;
+using Application.Services.EventService.Dto;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using yandex_pract.CustomEventService.Dto;
 
 namespace Presentation.Controllers;
 

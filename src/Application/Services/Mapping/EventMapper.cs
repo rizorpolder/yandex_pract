@@ -1,5 +1,5 @@
+using Application.Services.EventService.Dto;
 using Domain.Models.Event;
-using yandex_pract.CustomEventService.Dto;
 
 namespace Application.Services.Mapping;
 

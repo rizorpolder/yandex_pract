@@ -3,18 +3,18 @@ using Application.Services.Abstraction.Repositories;
 using Application.Services.Abstraction.Services;
 using Application.Services.BackgroundBookingService;
 using Application.Services.BookingService;
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
 using Domain.Exceptions;
 using Domain.Models.Booking;
 using Domain.Models.Event;
+using Infrastructure.Contexts;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Dto;
-using yandex_pract.DbContext;
-using yandex_pract.Filters;
 
 namespace IntegrationTest.Tests;
 

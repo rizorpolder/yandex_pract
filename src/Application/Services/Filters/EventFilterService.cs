@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using Application.Services.EventService.Dto;
 using Domain.Models.Event;
-using yandex_pract.CustomEventService.Dto;
 
-namespace yandex_pract.Filters;
+namespace Application.Services.Filters;
 
 public class EventFilterService
 {

@@ -3,7 +3,7 @@ using Domain.Models.Booking;
 using Domain.Models.Event;
 using Microsoft.EntityFrameworkCore;
 
-namespace yandex_pract.DbContext;
+namespace Infrastructure.Contexts;
 
 public class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 {

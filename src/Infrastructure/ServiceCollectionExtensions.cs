@@ -1,11 +1,11 @@
 ﻿using Application.Services.Abstraction.Repositories;
+using Infrastructure.Contexts;
 using Infrastructure.Interceptors;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using yandex_pract.DbContext;
 
 namespace Infrastructure;
 

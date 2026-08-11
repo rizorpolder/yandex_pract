@@ -1,7 +1,7 @@
+using Infrastructure.Contexts;
 using Infrastructure.Interceptors;
 using IntegrationTest.Tests.Fixture;
 using Microsoft.EntityFrameworkCore;
-using yandex_pract.DbContext;
 
 namespace IntegrationTest.Tests.Interfaces;
 

@@ -1,9 +1,9 @@
 ﻿using Application.Services.Abstraction.Services;
 using Application.Services.BackgroundBookingService;
 using Application.Services.BookingService;
+using Application.Services.EventService;
+using Application.Services.Filters;
 using Microsoft.Extensions.DependencyInjection;
-using yandex_pract.CustomEventService;
-using yandex_pract.Filters;
 
 namespace Application;
 

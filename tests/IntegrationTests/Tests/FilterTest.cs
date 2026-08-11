@@ -1,9 +1,9 @@
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Dto;
-using yandex_pract.Filters;
 
 namespace IntegrationTest.Tests;
 

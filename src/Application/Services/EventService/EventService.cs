@@ -1,12 +1,12 @@
 ﻿using Application.Services.Abstraction.Repositories;
 using Application.Services.Abstraction.RequestResult;
 using Application.Services.Abstraction.Services;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
 using Application.Services.Mapping;
 using Domain.Models.Event;
-using yandex_pract.CustomEventService.Dto;
-using yandex_pract.Filters;
 
-namespace yandex_pract.CustomEventService;
+namespace Application.Services.EventService;
 
 public class EventService(IEventRepository eventRepository, EventFilterService filterService) : IEventService
 {

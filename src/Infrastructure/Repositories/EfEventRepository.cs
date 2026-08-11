@@ -1,7 +1,7 @@
 using Application.Services.Abstraction.Repositories;
 using Domain.Models.Event;
+using Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
-using yandex_pract.DbContext;
 
 namespace Infrastructure.Repositories;
 

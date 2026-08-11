@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Cors.Infrastructure;
 
-namespace yandex_pract.Cors;
+namespace Web.Cors;
 
 public static class CORSMiddleware
 {

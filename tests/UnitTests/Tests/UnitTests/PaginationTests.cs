@@ -1,9 +1,9 @@
 ﻿using Application.Services.Abstraction.Repositories;
 using Application.Services.Abstraction.Services;
+using Application.Services.EventService;
+using Application.Services.Filters;
 using Domain.Models.Event;
 using Moq;
-using yandex_pract.CustomEventService;
-using yandex_pract.Filters;
 
 namespace EventTests.Tests;
 

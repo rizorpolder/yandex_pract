@@ -1,13 +1,13 @@
 using Application.Services.BookingService;
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
 using Domain.Models.Booking;
 using Domain.Models.Event;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Dto;
-using yandex_pract.Filters;
 
 namespace IntegrationTest.Tests;
 

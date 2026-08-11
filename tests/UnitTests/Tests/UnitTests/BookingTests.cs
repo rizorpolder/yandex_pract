@@ -3,14 +3,14 @@ using Application.Services.Abstraction.Repositories;
 using Application.Services.Abstraction.Services;
 using Application.Services.BackgroundBookingService;
 using Application.Services.BookingService;
+using Application.Services.EventService;
+using Application.Services.EventService.Dto;
+using Application.Services.Filters;
 using Domain.Exceptions;
 using Domain.Models.Booking;
 using Domain.Models.Event;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using yandex_pract.CustomEventService;
-using yandex_pract.CustomEventService.Dto;
-using yandex_pract.Filters;
 
 namespace EventTests.Tests;
 
