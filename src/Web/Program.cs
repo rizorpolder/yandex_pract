@@ -16,7 +16,13 @@ public class Program
 		var app = builder.Build();
 
 		app.UsePresentation();
+		app.UseAuthentication();
+		app.UseAuthorization();
+		
+		
 		app.MapPresentationEndpoints();
+
+
 
 		app.Run();
 	}

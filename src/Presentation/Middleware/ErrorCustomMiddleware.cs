@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Presentation.Middleware;
 
-public class MyCustomMiddleware
+public class ErrorCustomMiddleware
 {
 	private readonly RequestDelegate _next;
-	private readonly ILogger<MyCustomMiddleware> _logger;
+	private readonly ILogger<ErrorCustomMiddleware> _logger;
 
-	public MyCustomMiddleware(RequestDelegate next, ILogger<MyCustomMiddleware> logger)
+	public ErrorCustomMiddleware(RequestDelegate next, ILogger<ErrorCustomMiddleware> logger)
 	{
 		_next = next;
 		_logger = logger;

@@ -33,7 +33,7 @@ public static class ServiceCollectionExtensions
 	{
 		app.UseInfrastructure();
 
-		app.UseMiddleware<MyCustomMiddleware>();
+		app.UseMiddleware<ErrorCustomMiddleware>();
 
 		if (app.ApplicationServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
 		{
@@ -43,7 +43,6 @@ public static class ServiceCollectionExtensions
 
 		app.UseHttpsRedirection();
 		app.UseRouting();
-
 		return app;
 	}
 
