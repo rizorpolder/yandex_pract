@@ -1,4 +1,4 @@
-﻿using Domain.Models.Event;
+﻿using Domain.Models.Events;
 
 namespace Application.Services.Abstraction.Repositories;
 

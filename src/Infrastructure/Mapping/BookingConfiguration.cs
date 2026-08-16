@@ -1,4 +1,4 @@
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

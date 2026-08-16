@@ -2,7 +2,7 @@
 using Application.Services.Abstraction.Services;
 using Application.Services.EventService;
 using Application.Services.Filters;
-using Domain.Models.Event;
+using Domain.Models.Events;
 using Moq;
 
 namespace EventTests.Tests;

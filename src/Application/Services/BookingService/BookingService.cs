@@ -4,7 +4,7 @@ using Application.Services.Abstraction.Services;
 using Application.Services.BookingService.Dto;
 using Application.Services.Mapping;
 using Domain.Exceptions;
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 
 namespace Application.Services.BookingService;
 

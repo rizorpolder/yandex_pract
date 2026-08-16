@@ -7,8 +7,8 @@ using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
 using Domain.Exceptions;
-using Domain.Models.Booking;
-using Domain.Models.Event;
+using Domain.Models.Bookings;
+using Domain.Models.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 

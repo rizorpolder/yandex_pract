@@ -1,4 +1,4 @@
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 
 namespace Application.Services.Abstraction.Repositories;
 

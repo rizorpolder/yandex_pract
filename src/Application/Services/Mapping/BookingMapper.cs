@@ -1,5 +1,5 @@
 using Application.Services.BookingService.Dto;
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 
 namespace Application.Services.Mapping;
 

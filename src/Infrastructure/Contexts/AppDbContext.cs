@@ -1,6 +1,6 @@
 using System.Reflection;
-using Domain.Models.Booking;
-using Domain.Models.Event;
+using Domain.Models.Bookings;
+using Domain.Models.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Contexts;

@@ -1,5 +1,5 @@
 using Application.Services.Abstraction.Repositories;
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 using Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 

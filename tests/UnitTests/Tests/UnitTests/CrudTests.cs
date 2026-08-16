@@ -4,7 +4,7 @@ using Application.Services.BookingService;
 using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
-using Domain.Models.Event;
+using Domain.Models.Events;
 using Moq;
 
 namespace EventTests.Tests;

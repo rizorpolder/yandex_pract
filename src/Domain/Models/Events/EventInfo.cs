@@ -1,4 +1,4 @@
-namespace Domain.Models.Event;
+namespace Domain.Models.Events;
 
 public struct EventInfo
 {

@@ -4,7 +4,7 @@ using Application.Services.Abstraction.Services;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
 using Application.Services.Mapping;
-using Domain.Models.Event;
+using Domain.Models.Events;
 
 namespace Application.Services.EventService;
 
