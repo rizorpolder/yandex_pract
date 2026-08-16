@@ -75,7 +75,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 		if (booking is null)
 			return Result<bool>.Failure("Booking not found");
 
-		if (role != UserRole.Admin && booking.UserId != userId)
+		if (booking.UserId != userId || role != UserRole.Admin)
 			return Result<bool>.Failure("Forbidden");
 
 		var evt = await eventRepository.GetByIdAsync(booking.EventId);
