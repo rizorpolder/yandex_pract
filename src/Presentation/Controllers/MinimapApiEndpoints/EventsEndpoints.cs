@@ -2,17 +2,32 @@ using Application.Services.Abstraction.Services;
 using Application.Services.EventService.Dto;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Routing;
-using Presentation.Middleware;
+using Microsoft.Extensions.DependencyInjection;
+using ProblemDetails = Presentation.Middleware.ProblemDetails;
 
 namespace Presentation.Controllers;
 
 internal static class EventsEndpoints
 {
-	//Другой способ определения эндпойнтов
 	public static IEndpointRouteBuilder MapEventsEndpoints(this IEndpointRouteBuilder builder)
 	{
 		var group = builder.MapGroup("/events");
+
+		MapGetEventsEndpoint(group);
+		MapGetEventByIdEndpoint(group);
+		MapCreateEventEndpoint(group);
+		MapUpdateEventByIdEndpoint(group);
+		MapDeleteEventByIdEndpoint(group);
+		return group;
+	}
+
+	private static void MapGetEventsEndpoint(RouteGroupBuilder group)
+	{
 		group.MapGet("/", async (
 				IEventService eventService,
 				string? title,
@@ -27,41 +42,105 @@ internal static class EventsEndpoints
 			.WithName("GetEvents")
 			.Produces<PaginatedResultDto>()
 			.Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
-		
-		group.MapGet("/{id:guid}", async (IEventService eventService, Guid id) =>
-			{
-				var result = await eventService.GetEventById(id);
-				if (result.hasElement)
-					return Results.Ok(new EventDto(result.resultModel));
-				return Results.NotFound();
-			})
-			.WithName("GetEventById")
-			.Produces<EventDto>()
-			.Produces<ProblemDetails>(StatusCodes.Status500InternalServerError)
-			.Produces<ProblemDetails>(StatusCodes.Status404NotFound);
-		
-		group.MapDelete("/{id:guid}", async (IEventService eventService, Guid id) =>
-			{
-				var model = await eventService.GetEventById(id);
-				if (!model.hasElement)
-					return Results.NotFound();
-		
-				var isSuccess = await eventService.RemoveEvent(model.resultModel);
-				if (isSuccess)
-					return Results.Ok();
-		
-				return Results.BadRequest();
-			})
-			.WithName("DeleteEventById")
-			.Produces(StatusCodes.Status204NoContent)
-			.Produces(StatusCodes.Status500InternalServerError);
-		return builder;
 	}
 
-	public static IEndpointRouteBuilder MapBookingEndpoints(this IEndpointRouteBuilder builder)
+	private static void MapGetEventByIdEndpoint(RouteGroupBuilder group)
 	{
-		
+		group.MapGet("{id:guid}", async (
+				IEventService eventService,
+				Guid eventId) =>
+			{
+				var result = await eventService.GetEventById(eventId);
+
+				if (!result.IsSuccess)
+					return Results.NotFound(new { Message = result.ErrorMessage });
+
+				return Results.Ok(result.Value);
+			})
+			.Produces<EventDto>()
+			.Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 	}
-	
-	public static 
+
+	private static void MapCreateEventEndpoint(RouteGroupBuilder group)
+	{
+		group.MapPost("/", async (
+				IEventService eventService,
+				[FromBody] EventDto eventDto,
+				HttpContext ctx) =>
+			{
+				var validator = ctx.RequestServices.GetRequiredService<IObjectModelValidator>();
+
+				var actionContext = new ActionContext(
+					ctx,
+					ctx.GetRouteData(),
+					new ActionDescriptor(),
+					new ModelStateDictionary()
+				);
+
+				validator.Validate(actionContext, null, string.Empty, eventDto);
+
+				if (!actionContext.ModelState.IsValid)
+					return Results.BadRequest();
+
+				var result = await eventService.CreateEventAsync(eventDto);
+				if (!result.IsSuccess)
+					return Results.BadRequest(new { Message = result.ErrorMessage });
+
+				return Results.Ok(result.Value);
+			}).WithName("CreateEvent")
+			.Produces<EventDto>(StatusCodes.Status201Created)
+			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
+	}
+
+	private static void MapUpdateEventByIdEndpoint(RouteGroupBuilder group)
+	{
+		group.MapGet("{id:guid}", async (
+				IEventService eventService,
+				Guid id,
+				[FromBody] EventDto eventDto,
+				HttpContext ctx
+			) =>
+			{
+				var validator = ctx.RequestServices.GetRequiredService<IObjectModelValidator>();
+
+				var actionContext = new ActionContext(
+					ctx,
+					ctx.GetRouteData(),
+					new ActionDescriptor(),
+					new ModelStateDictionary()
+				);
+
+				validator.Validate(actionContext, null, string.Empty, eventDto);
+
+				if (!actionContext.ModelState.IsValid)
+					return Results.BadRequest();
+
+				var result = await eventService.UpdateEventAsync(id, eventDto);
+				if (!result.IsSuccess)
+					return Results.NotFound(new { Message = result.ErrorMessage });
+				return Results.Ok(result.Value);
+			})
+			.WithName("UpdateEventById")
+			.Produces<EventDto>()
+			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+			.Produces<ProblemDetails>(StatusCodes.Status404NotFound);
+	}
+
+	private static void MapDeleteEventByIdEndpoint(RouteGroupBuilder group)
+	{
+		group.MapDelete("{id:guid}", async (IEventService service, Guid id) =>
+			{
+				var getEvtResult = await service.GetEventById(id);
+				if (!getEvtResult.IsSuccess)
+					return Results.NotFound(new { message = getEvtResult.ErrorMessage });
+
+				var removeEvtResult = await service.RemoveEvent(getEvtResult.Value);
+				if (!removeEvtResult.IsSuccess)
+					return Results.BadRequest(new { message = removeEvtResult.ErrorMessage });
+
+				return Results.Ok();
+			})
+			.WithName("DeleteEventById")
+			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
+	}
 }
