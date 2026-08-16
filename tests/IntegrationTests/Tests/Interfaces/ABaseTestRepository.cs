@@ -9,7 +9,7 @@ public abstract class ABaseTestRepository(PostgresContainerFixture fixture)
 {
 	protected readonly PostgresContainerFixture _fixture = fixture;
 
-	protected virtual string[] TablesToTruncate => ["events", "bookings"];
+	protected virtual string[] TablesToTruncate => ["events", "bookings", "users"];
 
 	protected AppDbContext CreateContext()
 	{
