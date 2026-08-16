@@ -1,8 +1,10 @@
 ﻿using System.Text;
 using Application.Services.Abstraction.Repositories;
+using Application.Services.Abstraction.Services.Auth;
 using Infrastructure.Contexts;
 using Infrastructure.Interceptors;
 using Infrastructure.Repositories;
+using Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,40 +28,9 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IEventRepository, EfEventRepository>();
 		services.AddScoped<IBookingRepository, EfBookingRepository>();
 
-		services.AddAuthentication(options =>
-			{
-				options.DefaultAuthenticateScheme = "SecureApi";
-				options.DefaultChallengeScheme = "SecureApi";
-			})
-			.AddJwtBearer("SecureApi",
-				options =>
-				{
-					options.TokenValidationParameters = new TokenValidationParameters
-					{
-						RoleClaimType = "role",
-
-						ValidateIssuer = true,
-						ValidIssuer = "MyAuthServer",
-
-						ValidateAudience = true,
-						ValidAudience = "MyClientApp",
-
-						ValidateLifetime = true,
-						ClockSkew = TimeSpan.FromMinutes(3),
-
-						ValidateIssuerSigningKey = true,
-						IssuerSigningKey =
-							new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperLongSecretKey12345678901234567")),
-					};
-				});
-
-		services.AddAuthorization(options =>
-		{
-			options.AddPolicy("AdultAdmin",
-				policy => policy.RequireRole("Admin")
-					.RequireAssertion(ctx => ctx.User
-						.HasClaim(c => c.Type == "Age" && int.Parse(c.Value) >= 18))); //политика роли админ >18 лет
-		});
+		services.AddScoped<IUserRepository, UserRepository>();
+		services.AddScoped<IJwtGenerator, JwtGenerator>();
+		services.AddScoped<IPasswordHasher, Sha256PasswordHasher>();
 
 		return services;
 	}

@@ -42,4 +42,9 @@ public class EfBookingRepository(AppDbContext dbContext) : IBookingRepository
 	{
 		return await dbContext.Bookings.Where(x => x.Status.Equals(BookingStatus.Pending)).ToListAsync();
 	}
+
+	public async Task<int> GetActiveBookingsCountAsync(Guid userId)
+	{
+		return await dbContext.Bookings.AsNoTracking().Where(x => x.UserId.Equals(userId)).CountAsync();
+	}
 }

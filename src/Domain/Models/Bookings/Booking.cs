@@ -14,10 +14,10 @@ public class Booking
 	{
 	}
 
-	public Booking(Guid eventId, Guid userID)
+	public Booking(Guid eventId, Guid userId)
 	{
 		Id = Guid.NewGuid();
-		UserId = userID;
+		UserId = userId;
 		EventId = eventId;
 		CreatedAt = DateTime.UtcNow;
 		Status = BookingStatus.Pending;
