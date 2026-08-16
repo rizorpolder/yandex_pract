@@ -2,17 +2,25 @@ namespace Domain.Exceptions;
 
 public class BookingLimitReachedException : Exception
 {
-	public override string Message => "Booking limit has been reached";
+	private int _limit;
 
-	public BookingLimitReachedException() : base()
+	public override string Message => $"Booking limit has been reached ({_limit})";
+
+	public BookingLimitReachedException(int limit)
+		: base($"Booking limit has been reached ({limit})")
 	{
+		_limit = limit;
 	}
 
-	public BookingLimitReachedException(string message) : base(message)
+	public BookingLimitReachedException(int limit, string message)
+		: base(message)
 	{
+		_limit = limit;
 	}
 
-	public BookingLimitReachedException(string message, Exception innerException) : base(message, innerException)
+	public BookingLimitReachedException(int limit, string message, Exception innerException)
+		: base(message, innerException)
 	{
+		_limit = limit;
 	}
 }

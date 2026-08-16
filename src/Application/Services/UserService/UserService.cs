@@ -11,15 +11,15 @@ public class UserService(
 	IPasswordHasher passwordHasher,
 	IJwtGenerator jwtGenerator) : IUserService
 {
-	public async Task<Result<string>> RegisterAsync(string login, string password)
+	public async Task<Result<string>> RegisterAsync(string login, string password, UserRole role = UserRole.User)
 	{
 		var exist = await userRepository.GetByLoginAsync(login);
-		if (exist == null)
+		if (exist != null)
 			return Result<string>.Failure("User already exists");
 
 
 		var hash = passwordHasher.GetHash(password);
-		var user = new User(login, password, UserRole.User);
+		var user = new User(login, hash, role);
 
 		await userRepository.AddAsync(user);
 		await userRepository.SaveChangesAsync();

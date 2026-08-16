@@ -12,6 +12,7 @@ namespace Application.Services.BookingService;
 public class BookingService(IBookingRepository bookingRepository, IEventRepository eventRepository)
 	: IBookingService
 {
+	private readonly int _bookingLimit = 10; //TODO в конфиг?
 	private readonly SemaphoreSlim _semaphore = new(1, 1);
 
 	public async Task<Result<BookingDto>> CreateBookingAsync(Guid eventId, Guid userId)
@@ -31,8 +32,8 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 				return Result<BookingDto>.Failure("Event already started");
 
 			var activeCount = await bookingRepository.GetActiveBookingsCountAsync(userId);
-			if (activeCount >= 10)
-				throw new BookingLimitReachedException();
+			if (activeCount >= _bookingLimit)
+				throw new BookingLimitReachedException(_bookingLimit);
 
 			if (!evt.TryReserveSeats())
 				throw new NoAvailableSeatsException("No available seats");

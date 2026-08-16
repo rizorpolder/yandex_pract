@@ -27,8 +27,8 @@ public static class ServiceCollectionExtensions
 
 		services.AddScoped<IEventRepository, EfEventRepository>();
 		services.AddScoped<IBookingRepository, EfBookingRepository>();
-
 		services.AddScoped<IUserRepository, UserRepository>();
+		
 		services.AddScoped<IJwtGenerator, JwtGenerator>();
 		services.AddScoped<IPasswordHasher, Sha256PasswordHasher>();
 

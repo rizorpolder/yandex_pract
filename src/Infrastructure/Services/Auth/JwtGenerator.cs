@@ -4,31 +4,24 @@ using System.Text;
 using Application.Services.Abstraction.Services.Auth;
 using Domain.Models.Users;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Services.Auth;
 
 public class JwtGenerator : IJwtGenerator
 {
-	private readonly string _secret;
-	private readonly string _issuer;
-	private readonly string _audience;
-	private readonly int _lifetimeMinutes;
+	private readonly JwtOptions _options;
 
-
-	public JwtGenerator(IConfiguration config)
+	public JwtGenerator(IOptions<JwtOptions> options)
 	{
-		var section = config.GetSection("Jwt");
-		_secret = section["Secret"];
-		_issuer = section["Issuer"];
-		_audience = section["Audience"];
-		_lifetimeMinutes = int.Parse(section["LifetimeMinutes"]);
+		_options = options.Value;
 	}
 
 	public string GenerateJwtToken(Guid userId, string login, UserRole role)
 	{
-		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
-		var creds = new SigningCredentials(key, SecurityAlgorithms.Sha256);
+		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Secret));
+		var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
 		var claims = new[]
 		{
@@ -37,10 +30,10 @@ public class JwtGenerator : IJwtGenerator
 			new Claim("role", role.ToString())
 		};
 		var token = new JwtSecurityToken(
-			_issuer,
-			_audience,
+			_options.Issuer,
+			_options.Audience,
 			claims,
-			expires: DateTime.UtcNow.AddMinutes(_lifetimeMinutes),
+			expires: DateTime.UtcNow.AddMinutes(_options.LifeTime),
 			signingCredentials: creds);
 
 		return new JwtSecurityTokenHandler().WriteToken(token);

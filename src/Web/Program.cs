@@ -1,11 +1,15 @@
 using System;
 using System.Text;
+using Application;
 using Infrastructure;
+using Infrastructure.Services.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Presentation;
+using Presentation.Middleware;
 
 public class Program
 {
@@ -15,49 +19,49 @@ public class Program
 
 		builder.Services.AddPresentation(builder.Configuration);
 		builder.Services.AddInfrastructure(builder.Configuration);
+		builder.Services.AddApplication();
+
+		var jwtSection = builder.Configuration.GetSection("Jwt");
+		var jwtOptions = jwtSection.Get<JwtOptions>();
+		builder.Services.Configure<JwtOptions>(jwtSection);
+
 		builder.Services.AddAuthentication(options =>
 			{
-				options.DefaultAuthenticateScheme = "SecureApi";
-				options.DefaultChallengeScheme = "SecureApi";
+				options.DefaultScheme = "Bearer";
+				options.DefaultAuthenticateScheme = "Bearer";
+				options.DefaultChallengeScheme = "Bearer";
 			})
-			.AddJwtBearer("SecureApi",
-				options =>
+			.AddJwtBearer("Bearer", options =>
+			{
+				options.MapInboundClaims = false;
+				options.TokenValidationParameters = new TokenValidationParameters
 				{
-					options.TokenValidationParameters = new TokenValidationParameters
-					{
-						RoleClaimType = "role",
+					RoleClaimType = "role",
+					ValidateIssuer = true,
+					ValidIssuer = jwtOptions.Issuer,
+					ValidateAudience = true,
+					ValidAudience = jwtOptions.Audience,
+					ValidateLifetime = true,
+					ClockSkew = TimeSpan.FromMinutes(3),
+					ValidateIssuerSigningKey = true,
+					IssuerSigningKey = new SymmetricSecurityKey(
+						Encoding.UTF8.GetBytes(jwtOptions.Secret))
+				};
+			});
 
-						ValidateIssuer = true,
-						ValidIssuer = "MyAuthServer",
-
-						ValidateAudience = true,
-						ValidAudience = "MyClientApp",
-
-						ValidateLifetime = true,
-						ClockSkew = TimeSpan.FromMinutes(3),
-
-						ValidateIssuerSigningKey = true,
-						IssuerSigningKey =
-							new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperLongSecretKey12345678901234567")),
-					};
-				});
-
-		builder.Services.AddAuthorization(options =>
-		{
-			options.AddPolicy("AdultAdmin",
-				policy => policy.RequireRole("Admin")
-					.RequireAssertion(ctx => ctx.User
-						.HasClaim(c => c.Type == "Age" && int.Parse(c.Value) >= 18))); //политика роли админ >18 лет
-		});
+		builder.Services.AddAuthorization();
 
 		var app = builder.Build();
 
-		app.UseInfrastructure();
-		app.UsePresentation();
+		app.UseMiddleware<ErrorCustomMiddleware>();
+
+		app.UseHttpsRedirection();
+		app.UseRouting();
 
 		app.UseAuthentication();
 		app.UseAuthorization();
 
+		app.UsePresentation();
 		app.MapPresentationEndpoints();
 
 		app.Run();
