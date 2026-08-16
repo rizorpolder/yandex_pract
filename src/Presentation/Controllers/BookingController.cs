@@ -1,6 +1,5 @@
 using Application.Services.Abstraction.Services;
 using Domain.Exceptions;
-using Domain.Models.Bookings;
 using Domain.Models.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
