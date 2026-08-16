@@ -94,7 +94,7 @@ internal static class EventsEndpoints
 
 	private static void MapUpdateEventByIdEndpoint(RouteGroupBuilder group)
 	{
-		group.MapGet("{id:guid}", async (
+		group.MapPut("{id:guid}", async (
 				IEventService eventService,
 				Guid id,
 				[FromBody] EventDto eventDto,

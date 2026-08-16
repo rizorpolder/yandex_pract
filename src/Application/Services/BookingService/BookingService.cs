@@ -32,7 +32,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 
 			var activeCount = await bookingRepository.GetActiveBookingsCountAsync(userId);
 			if (activeCount >= 10)
-				return Result<BookingDto>.Failure("User has reached booking limit");
+				throw new BookingLimitReachedException();
 
 			if (!evt.TryReserveSeats())
 				throw new NoAvailableSeatsException("No available seats");

@@ -21,11 +21,11 @@ internal static class BookingEndpoints
 	private static IEndpointRouteBuilder MapBookingCreate(this IEndpointRouteBuilder builder)
 	{
 		builder.MapPost("{eventId:guid}/book}",
-				async (IBookingService service, Guid eventId, HttpContext ctx) =>
+				async (IBookingService service, Guid eventId,Guid userId, HttpContext ctx) =>
 				{
 					try
 					{
-						var bookingResult = await service.CreateBookingAsync(eventId);
+						var bookingResult = await service.CreateBookingAsync(eventId,userId);
 
 						if (!bookingResult.IsSuccess)
 							return Results.NotFound(bookingResult.ErrorMessage);

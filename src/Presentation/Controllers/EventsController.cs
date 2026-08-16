@@ -1,5 +1,7 @@
 ﻿using Application.Services.Abstraction.Services;
 using Application.Services.EventService.Dto;
+using Domain.Models.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -44,6 +46,7 @@ public class EventsController : ControllerBase
 	[HttpPost(Name = nameof(CreateNewEvent))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
+	[Authorize(Roles = "Admin")]
 	public async Task<ActionResult<EventDto>> CreateNewEvent([FromBody] EventDto eventDto)
 	{
 		if (!TryValidateModel(eventDto))
@@ -61,6 +64,7 @@ public class EventsController : ControllerBase
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
+	[Authorize(Roles = "Admin")]
 	public async Task<ActionResult<EventDto>> UpdateEventById(Guid id, [FromBody] EventDto eventDto)
 	{
 		if (!TryValidateModel(eventDto))
@@ -75,6 +79,7 @@ public class EventsController : ControllerBase
 	[HttpDelete("{id:guid}", Name = nameof(DeleteEventById))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status400BadRequest)]
+	[Authorize(Roles = "Admin")]
 	public async Task<IActionResult> DeleteEventById(Guid id)
 	{
 		var getEvtResult = await _eventService.GetEventById(id);
