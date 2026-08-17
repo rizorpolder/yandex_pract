@@ -81,7 +81,7 @@ public class Program
 		using var scope = app.Services.CreateScope();
 		var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 		var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-		var hasher = app.Services.GetService<IPasswordHasher>();
+		var hasher = scope.ServiceProvider.GetService<IPasswordHasher>();
 		if (!env.IsDevelopment())
 			return;
 
