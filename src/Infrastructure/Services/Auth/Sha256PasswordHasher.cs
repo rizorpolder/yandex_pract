@@ -1,19 +1,21 @@
-using System.Security.Cryptography;
-using System.Text;
 using Application.Services.Abstraction.Services.Auth;
+using Domain.Models.Users;
+using Microsoft.AspNetCore.Identity;
 
 namespace Infrastructure.Services.Auth;
 
 public class Sha256PasswordHasher : IPasswordHasher
 {
+	private readonly PasswordHasher<User> _hasher = new();
+
 	public string GetHash(string password)
 	{
-		var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-		return Convert.ToHexString(bytes); 
+		return _hasher.HashPassword(null!, password);
 	}
 
 	public bool VerifyHash(string password, string hash)
 	{
-		return GetHash(password) == hash;
+		var result = _hasher.VerifyHashedPassword(null!, password, hash);
+		return result == PasswordVerificationResult.Success;
 	}
 }

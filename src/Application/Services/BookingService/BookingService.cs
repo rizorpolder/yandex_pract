@@ -24,7 +24,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 			var evt = await eventRepository.GetByIdAsync(eventId);
 			if (evt == null)
 
-				return Result<BookingDto>.Failure("Event not found");
+				return Result<BookingDto>.Failure("NotFound");
 
 			if (DateTime.UtcNow > evt.EndAt)
 				throw new OutOfDateException();
@@ -37,7 +37,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 				throw new BookingLimitReachedException(options.Value.LimitPerUser);
 
 			if (!evt.TryReserveSeats())
-				throw new NoAvailableSeatsException("No available seats");
+				throw new NoAvailableSeatsException();
 
 			await eventRepository.SaveChangesAsync();
 			var booking = new Booking(eventId, userId);
@@ -64,7 +64,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 		var booking = await bookingRepository.GetBookingAsync(bookingId);
 		if (booking is null)
 		{
-			return Result<BookingDto>.Failure("Booking not found");
+			return Result<BookingDto>.Failure("NotFound");
 		}
 
 		return Result<BookingDto>.Success(BookingMapper.ToDto(booking));
@@ -74,19 +74,22 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 	{
 		var booking = await bookingRepository.GetBookingAsync(bookingId);
 		if (booking is null)
-			return Result<bool>.Failure("Booking not found");
+			return Result<bool>.Failure("NotFound");
 
 		if (booking.UserId != userId && role != UserRole.Admin)
 			return Result<bool>.Failure("Forbidden");
 
 		var evt = await eventRepository.GetByIdAsync(booking.EventId);
 		if (evt == null)
-			return Result<bool>.Failure("Event not found");
-
+			return Result<bool>.Failure("NotFound");
+		
+		if(DateTime.UtcNow >= evt.StartAt )
+			throw new EventAlreadyStartedException();
+		if (DateTime.UtcNow >= evt.EndAt)
+			throw new OutOfDateException();
+		
 		evt.ReleaseSeats();
-
-		booking.Status = BookingStatus.Rejected;
-		booking.ProcessedAt = DateTime.UtcNow;
+		booking.Cancel();
 
 		await eventRepository.SaveChangesAsync();
 		await bookingRepository.SaveChangesAsync();

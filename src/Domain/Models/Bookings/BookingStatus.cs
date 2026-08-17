@@ -6,6 +6,4 @@ public enum BookingStatus
 	Confirmed = 1 << 2,
 	Rejected = 1 << 3,
 	Cancelled = 1 << 4,
-
-	OnProcess = Pending | Confirmed,
 }

@@ -33,7 +33,7 @@ public class JwtGenerator : IJwtGenerator
 			_options.Issuer,
 			_options.Audience,
 			claims,
-			expires: DateTime.UtcNow.AddMinutes(_options.LifeTime),
+			expires: DateTime.UtcNow.AddMinutes(_options.LifetimeMinutes),
 			signingCredentials: creds);
 
 		return new JwtSecurityTokenHandler().WriteToken(token);

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class UserRepository(AppDbContext dbContext) : IUserRepository
+public class EfUserRepository(AppDbContext dbContext) : IUserRepository
 {
 	public async Task<User?> GetByLoginAsync(string login)
 	{

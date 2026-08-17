@@ -32,7 +32,7 @@ public class EventService(IEventRepository eventRepository, EventFilterService f
 	{
 		var evt = await eventRepository.GetByIdAsync(eventDto.ID);
 		if (evt == null)
-			return Result<EventDto>.Failure("Event not found");
+			return Result<EventDto>.Failure("NotFound");
 
 		try
 		{
@@ -51,7 +51,7 @@ public class EventService(IEventRepository eventRepository, EventFilterService f
 	{
 		var evt = await eventRepository.GetByIdAsync(id);
 		if (evt == null)
-			return Result<EventDto>.Failure("Event not found");
+			return Result<EventDto>.Failure("NotFound");
 		evt.UpdateEvent(EventMapper.FromDto(dto));
 		try
 		{
@@ -95,7 +95,7 @@ public class EventService(IEventRepository eventRepository, EventFilterService f
 	{
 		var evt = await eventRepository.GetByIdAsync(id);
 		if (evt == null)
-			return Result<EventDto>.Failure("Event not found");
+			return Result<EventDto>.Failure("NotFound");
 		return Result<EventDto>.Success(EventMapper.ToDto(evt));
 	}
 }

@@ -37,7 +37,7 @@ public class Booking
 
 	public void Cancel()
 	{
-		if (!BookingStatus.OnProcess.HasFlag(Status))
+		if (Status != BookingStatus.Pending && Status != BookingStatus.Confirmed)
 			return;
 
 		Status = BookingStatus.Cancelled;

@@ -52,6 +52,10 @@ public class ErrorCustomMiddleware
 			ValidationException ve => StatusCodes.Status400BadRequest,
 			NotFoundException nfe => StatusCodes.Status404NotFound,
 			NoAvailableSeatsException nse => StatusCodes.Status409Conflict,
+			BookingLimitReachedException blre => StatusCodes.Status409Conflict,
+			OutOfDateException oode => StatusCodes.Status400BadRequest,
+			EventAlreadyStartedException ease => StatusCodes.Status400BadRequest,
+			PermissionException pe => StatusCodes.Status403Forbidden,
 			_ => StatusCodes.Status500InternalServerError,
 		};
 }

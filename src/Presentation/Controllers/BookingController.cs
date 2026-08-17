@@ -62,10 +62,15 @@ public class BookingController : ControllerBase
 	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
 		var bookingResult = await bookingService.GetBookingByIdAsync(bookingId);
-
+		
 		if (!bookingResult.IsSuccess)
 			return NotFound();
-
+		
+		var userId = Guid.Parse(User.FindFirst("id")!.Value);
+		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value, true);
+		
+		if (bookingResult.Value.UserId != userId && role != UserRole.Admin)
+			return Forbid();
 		return Ok(bookingResult.Value);
 	}
 
@@ -77,7 +82,7 @@ public class BookingController : ControllerBase
 	public async Task<IActionResult> RemoveBooking(Guid bookingId)
 	{
 		var userId = Guid.Parse(User.FindFirst("id")!.Value);
-		var role = Enum.Parse<UserRole>(User.FindFirst("Role")!.Value, true);
+		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value, true);
 		try
 		{
 			var result = await bookingService.CancelBookingAsync(bookingId, userId, role);
@@ -88,6 +93,14 @@ public class BookingController : ControllerBase
 		catch (PermissionException e)
 		{
 			return Forbid(e.Message);
+		}
+		catch (OutOfDateException e)
+		{
+			return BadRequest(e.Message);
+		}
+		catch (EventAlreadyStartedException e)
+		{
+			return BadRequest(e.Message);
 		}
 	}
 }

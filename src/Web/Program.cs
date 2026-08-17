@@ -1,13 +1,18 @@
 using System;
+using System.Linq;
 using System.Text;
 using Application;
+using Application.Services.Abstraction.Services.Auth;
 using Domain.Models.Bookings.Options;
+using Domain.Models.Users;
 using Infrastructure;
+using Infrastructure.Contexts;
 using Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Presentation;
 using Presentation.Middleware;
@@ -24,9 +29,7 @@ public class Program
 
 		var jwtOptions = GetConfiguration<JwtOptions>(builder, "Jwt");
 		var bookingOptions = GetConfiguration<BookingOptions>(builder, "BookingParams");
-		
-		
-		
+
 
 		builder.Services.AddAuthentication(options =>
 			{
@@ -34,23 +37,24 @@ public class Program
 				options.DefaultAuthenticateScheme = "Bearer";
 				options.DefaultChallengeScheme = "Bearer";
 			})
-			.AddJwtBearer("Bearer", options =>
-			{
-				options.MapInboundClaims = false;
-				options.TokenValidationParameters = new TokenValidationParameters
+			.AddJwtBearer("Bearer",
+				options =>
 				{
-					RoleClaimType = "role",
-					ValidateIssuer = true,
-					ValidIssuer = jwtOptions.Issuer,
-					ValidateAudience = true,
-					ValidAudience = jwtOptions.Audience,
-					ValidateLifetime = true,
-					ClockSkew = TimeSpan.FromMinutes(3),
-					ValidateIssuerSigningKey = true,
-					IssuerSigningKey = new SymmetricSecurityKey(
-						Encoding.UTF8.GetBytes(jwtOptions.Secret))
-				};
-			});
+					options.MapInboundClaims = false;
+					options.TokenValidationParameters = new TokenValidationParameters
+					{
+						RoleClaimType = "role",
+						ValidateIssuer = true,
+						ValidIssuer = jwtOptions.Issuer,
+						ValidateAudience = true,
+						ValidAudience = jwtOptions.Audience,
+						ValidateLifetime = true,
+						ClockSkew = TimeSpan.FromMinutes(3),
+						ValidateIssuerSigningKey = true,
+						IssuerSigningKey = new SymmetricSecurityKey(
+							Encoding.UTF8.GetBytes(jwtOptions.Secret))
+					};
+				});
 
 		builder.Services.AddAuthorization();
 
@@ -65,9 +69,28 @@ public class Program
 		app.UseAuthorization();
 
 		app.UsePresentation();
+		app.UseInfrastructure();
+		
 		app.MapPresentationEndpoints();
-
+		CreateSuperuser(app);
 		app.Run();
+	}
+
+	private static void CreateSuperuser(WebApplication app)
+	{
+		using var scope = app.Services.CreateScope();
+		var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+		var hasher = app.Services.GetService<IPasswordHasher>();
+		if (!env.IsDevelopment())
+			return;
+
+		if (context.Users.Any(u => u.Role == UserRole.Admin))
+			return;
+
+		var admin = new User("admin", hasher.GetHash("dev-admin"), UserRole.Admin);
+		context.Users.Add(admin);
+		context.SaveChanges();
 	}
 
 	private static T? GetConfiguration<T>(WebApplicationBuilder builder, string key) where T : class
@@ -76,7 +99,7 @@ public class Program
 		var option = section.Get<T>();
 		if (option == null)
 			return null;
-		
+
 		builder.Services.Configure<T>(section);
 		return option;
 	}

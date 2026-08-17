@@ -716,4 +716,110 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		Assert.Equal(totalSeats, ids.Count);
 		Assert.Equal(totalSeats, ids.Distinct().Count());
 	}
+
+	[Fact]
+	public async Task CreateBooking_ForPastEvent_ShouldFail()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var eventRepo = new EfEventRepository(ctx);
+		var bookingRepo = new EfBookingRepository(ctx);
+		var filter = new EventFilterService();
+
+		var eventService = new EventService(eventRepo, filter);
+		var options = Options.Create(new BookingOptions {LimitPerUser = 10});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
+
+		var evt = new Event(
+			"past",
+			"desc",
+			DateTime.UtcNow.AddMinutes(-20),
+			DateTime.UtcNow.AddMinutes(-10),
+			3);
+
+		var user = new User("username", "hash", UserRole.User);
+		ctx.Users.Add(user);
+		await ctx.SaveChangesAsync();
+
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+
+		await Assert.ThrowsAsync<OutOfDateException>(() =>
+			 bookingService.CreateBookingAsync(created.Value.ID, user.Id));
+	}
+
+	[Fact]
+	public async Task CreateBooking_WhenUserReachedLimit_ShouldFail()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var eventRepo = new EfEventRepository(ctx);
+		var bookingRepo = new EfBookingRepository(ctx);
+		var filter = new EventFilterService();
+
+		var eventService = new EventService(eventRepo, filter);
+		var options = Options.Create(new BookingOptions {LimitPerUser = 1});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
+
+		var evt = new Event(
+			"title",
+			"desc",
+			DateTime.UtcNow.AddSeconds(10),
+			DateTime.UtcNow.AddSeconds(20),
+			3);
+
+		var user = new User("username", "hash", UserRole.User);
+		ctx.Users.Add(user);
+		await ctx.SaveChangesAsync();
+
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+
+		var b1 = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
+		Assert.True(b1.IsSuccess);
+
+		await Assert.ThrowsAsync<BookingLimitReachedException>(() =>
+			bookingService.CreateBookingAsync(created.Value.ID, user.Id));
+	}
+
+	[Fact]
+	public async Task CreateBooking_LimitIsPerUser_ShouldAllowOtherUser()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var eventRepo = new EfEventRepository(ctx);
+		var bookingRepo = new EfBookingRepository(ctx);
+		var filter = new EventFilterService();
+
+		var eventService = new EventService(eventRepo, filter);
+		var options = Options.Create(new BookingOptions {LimitPerUser = 1});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
+
+		var evt = new Event(
+			"title",
+			"desc",
+			DateTime.UtcNow.AddSeconds(10),
+			DateTime.UtcNow.AddSeconds(20),
+			3);
+
+		var userA = new User("userA", "hash", UserRole.User);
+		var userB = new User("userB", "hash", UserRole.User);
+
+		ctx.Users.AddRange(userA, userB);
+		await ctx.SaveChangesAsync();
+
+		var created = await eventService.CreateEventAsync(ToDto(evt));
+		Assert.True(created.IsSuccess);
+
+		var b1 = await bookingService.CreateBookingAsync(created.Value.ID, userA.Id);
+		Assert.True(b1.IsSuccess);
+
+		var b2 = await bookingService.CreateBookingAsync(created.Value.ID, userB.Id);
+
+		Assert.True(b2.IsSuccess);
+		Assert.NotNull(b2.Value);
+	}
 }

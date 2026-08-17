@@ -12,7 +12,7 @@ public class EventDto : IValidatableObject
 	public string Description { get; set; }
 	public DateTime StartAt { get; set; }
 	public DateTime EndAt { get; set; }
-	
+
 	public int TotalSeats { get; set; }
 	public int AvailableSeats { get; set; }
 
@@ -23,23 +23,16 @@ public class EventDto : IValidatableObject
 
 	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 	{
-		if (string.IsNullOrEmpty(Title))
-		{
-			yield return new ValidationResult("Title could not be empty");
-		}
-		else if (TotalSeats < 0)
-		{
-			yield return new ValidationResult("Should be greater than or equal to zero");
-		}
-		
-		else if (Title.Length is > 30 or < 2)
-		{
-			yield return new ValidationResult("Title could not be smaller than 2 characters and bigger than 30");
-		}
+		if (string.IsNullOrWhiteSpace(Title))
+			yield return new ValidationResult("Title could not be empty", [nameof(Title)]);
+
+		if (Title is {Length: < 2 or > 30})
+			yield return new ValidationResult("Title must be between 2 and 30 characters", [nameof(Title)]);
+
+		if (TotalSeats < 0)
+			yield return new ValidationResult("TotalSeats must be greater than or equal to zero", [nameof(TotalSeats)]);
 
 		if (EndAt <= StartAt)
-		{
 			yield return new ValidationResult("End date must be after start date.", [nameof(EndAt)]);
-		}
 	}
 }
