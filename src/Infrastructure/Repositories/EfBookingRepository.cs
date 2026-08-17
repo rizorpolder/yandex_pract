@@ -45,6 +45,6 @@ public class EfBookingRepository(AppDbContext dbContext) : IBookingRepository
 
 	public async Task<int> GetActiveBookingsCountAsync(Guid userId)
 	{
-		return await dbContext.Bookings.AsNoTracking().Where(x => x.UserId.Equals(userId)).CountAsync();
+		return await dbContext.Bookings.AsNoTracking().Where(x => x.UserId.Equals(userId) && x.Status == BookingStatus.Confirmed).CountAsync();
 	}
 }

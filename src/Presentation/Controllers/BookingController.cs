@@ -50,6 +50,10 @@ public class BookingController : ControllerBase
 		{
 			return BadRequest(e.Message);
 		}
+		catch (EventAlreadyStartedException e)
+		{
+			return BadRequest(e.Message);
+		}
 	}
 
 	[HttpGet("bookings/{bookingId:guid}", Name = nameof(GetBooking))]
@@ -69,6 +73,7 @@ public class BookingController : ControllerBase
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status403Forbidden)]
+	[Authorize]
 	public async Task<IActionResult> RemoveBooking(Guid bookingId)
 	{
 		var userId = Guid.Parse(User.FindFirst("id")!.Value);
@@ -77,7 +82,7 @@ public class BookingController : ControllerBase
 		{
 			var result = await bookingService.CancelBookingAsync(bookingId, userId, role);
 			if (!result.IsSuccess)
-				return NotFound(result.ErrorMessage);
+				return Forbid(result.ErrorMessage);
 			return Ok(result.Value);
 		}
 		catch (PermissionException e)

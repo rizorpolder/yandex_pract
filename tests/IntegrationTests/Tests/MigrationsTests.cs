@@ -3,12 +3,14 @@ using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
 using Domain.Models.Bookings;
+using Domain.Models.Bookings.Options;
 using Domain.Models.Events;
 using Domain.Models.Users;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace IntegrationTest.Tests;
 
@@ -130,7 +132,11 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo,options);
 
 		var dto = new EventDto
 		{

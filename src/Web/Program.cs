@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using Application;
+using Domain.Models.Bookings.Options;
 using Infrastructure;
 using Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,9 +22,11 @@ public class Program
 		builder.Services.AddInfrastructure(builder.Configuration);
 		builder.Services.AddApplication();
 
-		var jwtSection = builder.Configuration.GetSection("Jwt");
-		var jwtOptions = jwtSection.Get<JwtOptions>();
-		builder.Services.Configure<JwtOptions>(jwtSection);
+		var jwtOptions = GetConfiguration<JwtOptions>(builder, "Jwt");
+		var bookingOptions = GetConfiguration<BookingOptions>(builder, "BookingParams");
+		
+		
+		
 
 		builder.Services.AddAuthentication(options =>
 			{
@@ -65,5 +68,16 @@ public class Program
 		app.MapPresentationEndpoints();
 
 		app.Run();
+	}
+
+	private static T? GetConfiguration<T>(WebApplicationBuilder builder, string key) where T : class
+	{
+		var section = builder.Configuration.GetSection(key);
+		var option = section.Get<T>();
+		if (option == null)
+			return null;
+		
+		builder.Services.Configure<T>(section);
+		return option;
 	}
 }

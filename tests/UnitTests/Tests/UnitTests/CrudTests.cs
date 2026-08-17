@@ -4,7 +4,9 @@ using Application.Services.BookingService;
 using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
+using Domain.Models.Bookings.Options;
 using Domain.Models.Events;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace EventTests.Tests;
@@ -22,7 +24,11 @@ public class CrudTests
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo.Object, filter);
-		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object,options);
 
 		return (eventRepo, bookingRepo, eventService, bookingService);
 	}

@@ -8,8 +8,10 @@ using Application.Services.EventService.Dto;
 using Application.Services.Filters;
 using Domain.Exceptions;
 using Domain.Models.Bookings;
+using Domain.Models.Bookings.Options;
 using Domain.Models.Events;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace EventTests.Tests;
@@ -27,7 +29,11 @@ public class BookingTests
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo.Object, filter);
-		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object,options);
 
 		return (eventRepo, bookingRepo, eventService, bookingService);
 	}

@@ -5,14 +5,15 @@ using Application.Services.BookingService.Dto;
 using Application.Services.Mapping;
 using Domain.Exceptions;
 using Domain.Models.Bookings;
+using Domain.Models.Bookings.Options;
 using Domain.Models.Users;
+using Microsoft.Extensions.Options;
 
 namespace Application.Services.BookingService;
 
-public class BookingService(IBookingRepository bookingRepository, IEventRepository eventRepository)
+public class BookingService(IBookingRepository bookingRepository, IEventRepository eventRepository,IOptions<BookingOptions> options)
 	: IBookingService
 {
-	private readonly int _bookingLimit = 10; //TODO в конфиг?
 	private readonly SemaphoreSlim _semaphore = new(1, 1);
 
 	public async Task<Result<BookingDto>> CreateBookingAsync(Guid eventId, Guid userId)
@@ -29,11 +30,11 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 				throw new OutOfDateException();
 
 			if (DateTime.UtcNow >= evt.StartAt)
-				return Result<BookingDto>.Failure("Event already started");
+				throw new EventAlreadyStartedException();
 
 			var activeCount = await bookingRepository.GetActiveBookingsCountAsync(userId);
-			if (activeCount >= _bookingLimit)
-				throw new BookingLimitReachedException(_bookingLimit);
+			if (activeCount >= options.Value.LimitPerUser)
+				throw new BookingLimitReachedException(options.Value.LimitPerUser);
 
 			if (!evt.TryReserveSeats())
 				throw new NoAvailableSeatsException("No available seats");
@@ -75,7 +76,7 @@ public class BookingService(IBookingRepository bookingRepository, IEventReposito
 		if (booking is null)
 			return Result<bool>.Failure("Booking not found");
 
-		if (booking.UserId != userId || role != UserRole.Admin)
+		if (booking.UserId != userId && role != UserRole.Admin)
 			return Result<bool>.Failure("Forbidden");
 
 		var evt = await eventRepository.GetByIdAsync(booking.EventId);

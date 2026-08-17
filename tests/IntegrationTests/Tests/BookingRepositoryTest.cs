@@ -8,6 +8,7 @@ using Application.Services.EventService.Dto;
 using Application.Services.Filters;
 using Domain.Exceptions;
 using Domain.Models.Bookings;
+using Domain.Models.Bookings.Options;
 using Domain.Models.Events;
 using Domain.Models.Users;
 using Infrastructure.Contexts;
@@ -16,6 +17,7 @@ using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace IntegrationTest.Tests;
 
@@ -45,7 +47,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -83,7 +89,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -119,7 +129,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -152,7 +166,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var bookingRepo = new EfBookingRepository(ctx);
 		var eventRepo = new EfEventRepository(ctx);
 
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var result = await bookingService.CreateBookingAsync(Guid.NewGuid(), Guid.NewGuid());
 
@@ -171,7 +189,12 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -202,7 +225,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var bookingRepo = new EfBookingRepository(ctx);
 		var eventRepo = new EfEventRepository(ctx);
 
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var result = await bookingService.GetBookingByIdAsync(Guid.NewGuid());
 
@@ -224,6 +251,8 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		services.AddScoped<EventFilterService>();
 		services.AddScoped<IEventService, EventService>();
 		services.AddScoped<IBookingService, BookingService>();
+
+		services.Configure<BookingOptions>(o => { o.LimitPerUser = 10; });
 
 		var provider = services.BuildServiceProvider();
 
@@ -290,7 +319,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -324,8 +357,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
-
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 		var evt = new Event("title",
 			"desc",
 			DateTime.UtcNow.AddMinutes(1),
@@ -360,7 +396,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -388,7 +428,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var bookingRepo = new EfBookingRepository(ctx);
 		var eventRepo = new EfEventRepository(ctx);
 
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var result = await bookingService.CreateBookingAsync(Guid.NewGuid(), Guid.NewGuid());
 
@@ -407,7 +451,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -434,7 +482,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -473,7 +525,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -518,7 +574,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var evt = new Event("title",
 			"desc",
@@ -564,7 +624,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var totalSeats = 5;
 
@@ -615,7 +679,11 @@ public sealed class BookingRepositoryTest(PostgresContainerFixture fixture) : AB
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo, options);
 
 		var totalSeats = 10;
 

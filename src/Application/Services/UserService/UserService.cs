@@ -30,9 +30,7 @@ public class UserService(
 	public async Task<Result<string>> LoginAsync(string login, string password)
 	{
 		var user = await userRepository.GetByLoginAsync(login);
-		if (user == null)
-			return Result<string>.Failure("User not found");
-		if (!passwordHasher.VerifyHash(password, user.PasswordHash))
+		if (user == null || !passwordHasher.VerifyHash(password, user.PasswordHash))
 			return Result<string>.Failure("Invalid login or password");
 
 		var token = jwtGenerator.GenerateJwtToken(user.Id, user.Login, user.Role);
