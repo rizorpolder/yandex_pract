@@ -1,4 +1,5 @@
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
+using Domain.Models.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,5 +28,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 
 		builder.HasIndex(x => x.EventId)
 			.HasDatabaseName("ix_bookings_eventid");
+
+		builder.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 	}
 }

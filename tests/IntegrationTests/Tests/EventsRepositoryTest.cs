@@ -1,4 +1,4 @@
-using Domain.Models.Event;
+using Domain.Models.Events;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;

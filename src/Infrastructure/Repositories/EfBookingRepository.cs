@@ -1,5 +1,5 @@
 using Application.Services.Abstraction.Repositories;
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 using Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,5 +41,12 @@ public class EfBookingRepository(AppDbContext dbContext) : IBookingRepository
 	public async Task<List<Booking>> GetPendingAsync()
 	{
 		return await dbContext.Bookings.Where(x => x.Status.Equals(BookingStatus.Pending)).ToListAsync();
+	}
+
+	public async Task<int> GetActiveBookingsCountAsync(Guid userId)
+	{
+		return await dbContext.Bookings.AsNoTracking().Where(x => x.UserId.Equals(userId) &&
+		                                                          (x.Status == BookingStatus.Pending ||
+		                                                           x.Status == BookingStatus.Confirmed)).CountAsync();
 	}
 }

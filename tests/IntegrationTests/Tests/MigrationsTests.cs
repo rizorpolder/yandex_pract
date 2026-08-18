@@ -2,12 +2,15 @@ using Application.Services.BookingService;
 using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
-using Domain.Models.Booking;
-using Domain.Models.Event;
+using Domain.Models.Bookings;
+using Domain.Models.Bookings.Options;
+using Domain.Models.Events;
+using Domain.Models.Users;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using IntegrationTest.Tests.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace IntegrationTest.Tests;
 
@@ -15,7 +18,7 @@ namespace IntegrationTest.Tests;
 public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
 {
 	protected override string[] TablesToTruncate =>
-		["events", "bookings"];
+		["events", "bookings", "users"];
 
 	[Fact]
 	public async Task Migrations_ShouldApplySuccessfully()
@@ -76,7 +79,7 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
-		ctx.Bookings.Add(new Booking(Guid.NewGuid()));
+		ctx.Bookings.Add(new Booking(Guid.NewGuid(), Guid.NewGuid()));
 
 		await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
 	}
@@ -120,6 +123,7 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 	[Fact]
 	public async Task Migrations_ShouldAllowRepositoryOperations()
 	{
+		await ResetDatabaseAsync();
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
 
@@ -128,25 +132,35 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo, filter);
-		var bookingService = new BookingService(bookingRepo, eventRepo);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo, eventRepo,options);
 
 		var dto = new EventDto
 		{
 			Title = "title",
 			Description = "desc",
-			StartAt = DateTime.UtcNow,
-			EndAt = DateTime.UtcNow.AddMinutes(1),
+			StartAt = DateTime.UtcNow.AddMinutes(5),
+			EndAt = DateTime.UtcNow.AddMinutes(10),
 			TotalSeats = 5
 		};
 
+		var user = new User("username", "login", UserRole.User);
+		ctx.Users.Add(user);
+		await ctx.SaveChangesAsync();
+		
 		var created = await eventService.CreateEventAsync(dto);
 		Assert.True(created.IsSuccess);
 
-		var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID);
+		var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
 
 		Assert.True(bookingResult.IsSuccess);
 		Assert.NotNull(bookingResult.Value);
+		Assert.Equal(user.Id, bookingResult.Value.UserId); 
 	}
+
 
 	[Fact]
 	public async Task Migrations_ShouldEnforceAvailableSeatsCheck()
@@ -160,7 +174,7 @@ public class MigrationsTests(PostgresContainerFixture fixture) : ABaseTestReposi
 			DateTime.UtcNow.AddMinutes(1),
 			10);
 
-		evt.ReleaseSeats(100); 
+		evt.ReleaseSeats(100);
 
 		ctx.Events.Add(evt);
 

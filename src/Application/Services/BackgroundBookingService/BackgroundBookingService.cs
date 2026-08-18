@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using Application.Services.Abstraction.Repositories;
-using Domain.Models.Booking;
+using Domain.Models.Bookings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

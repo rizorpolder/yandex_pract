@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Presentation.Middleware;
 
-public class MyCustomMiddleware
+public class ErrorCustomMiddleware
 {
 	private readonly RequestDelegate _next;
-	private readonly ILogger<MyCustomMiddleware> _logger;
+	private readonly ILogger<ErrorCustomMiddleware> _logger;
 
-	public MyCustomMiddleware(RequestDelegate next, ILogger<MyCustomMiddleware> logger)
+	public ErrorCustomMiddleware(RequestDelegate next, ILogger<ErrorCustomMiddleware> logger)
 	{
 		_next = next;
 		_logger = logger;
@@ -52,6 +52,10 @@ public class MyCustomMiddleware
 			ValidationException ve => StatusCodes.Status400BadRequest,
 			NotFoundException nfe => StatusCodes.Status404NotFound,
 			NoAvailableSeatsException nse => StatusCodes.Status409Conflict,
+			BookingLimitReachedException blre => StatusCodes.Status409Conflict,
+			OutOfDateException oode => StatusCodes.Status400BadRequest,
+			EventAlreadyStartedException ease => StatusCodes.Status400BadRequest,
+			PermissionException pe => StatusCodes.Status403Forbidden,
 			_ => StatusCodes.Status500InternalServerError,
 		};
 }

@@ -1,4 +1,4 @@
-﻿namespace Domain.Models.Event;
+﻿namespace Domain.Models.Events;
 
 public class Event : IEquatable<Event>
 {
@@ -11,7 +11,7 @@ public class Event : IEquatable<Event>
 	public int TotalSeats { get; private set; }
 	public int AvailableSeats { get; private set; }
 
-	public List<Booking.Booking> Bookings { get; set; }
+	public List<Bookings.Booking> Bookings { get; set; }
 
 	private Event()
 	{

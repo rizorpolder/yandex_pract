@@ -1,5 +1,7 @@
 using Application.Services.Abstraction.Services;
 using Domain.Exceptions;
+using Domain.Models.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,23 +22,37 @@ public class BookingController : ControllerBase
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status409Conflict)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[Authorize]
 	public async Task<IActionResult> AddBooking(Guid eventId)
 	{
 		try
 		{
-			var bookingResult = await bookingService.CreateBookingAsync(eventId);
+			var userId = Guid.Parse(User.FindFirst("id")!.Value);
+			var bookingResult = await bookingService.CreateBookingAsync(eventId, userId);
 
 			if (!bookingResult.IsSuccess)
-				return NotFound(new {Message = bookingResult.ErrorMessage});
+				return NotFound(new { Message = bookingResult.ErrorMessage });
 
 			var location = $"/events/bookings/{bookingResult.Value.Id}";
 			Response.Headers.Append("Location", location);
 
 			return Accepted(bookingResult.Value);
 		}
-		catch (NoAvailableSeatsException)
+		catch (NoAvailableSeatsException e)
 		{
-			return Conflict(new {Message = "No available seats"});
+			return Conflict(e.Message);
+		}
+		catch (BookingLimitReachedException e)
+		{
+			return Conflict(e.Message);
+		}
+		catch (OutOfDateException e)
+		{
+			return BadRequest(e.Message);
+		}
+		catch (EventAlreadyStartedException e)
+		{
+			return BadRequest(e.Message);
 		}
 	}
 
@@ -46,10 +62,45 @@ public class BookingController : ControllerBase
 	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
 		var bookingResult = await bookingService.GetBookingByIdAsync(bookingId);
-
+		
 		if (!bookingResult.IsSuccess)
 			return NotFound();
-
+		
+		var userId = Guid.Parse(User.FindFirst("id")!.Value);
+		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value, true);
+		
+		if (bookingResult.Value.UserId != userId && role != UserRole.Admin)
+			return Forbid();
 		return Ok(bookingResult.Value);
+	}
+
+	[HttpDelete("bookings/{bookingId:guid}", Name = nameof(RemoveBooking))]
+	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
+	[ProducesResponseType(typeof(void), StatusCodes.Status403Forbidden)]
+	[Authorize]
+	public async Task<IActionResult> RemoveBooking(Guid bookingId)
+	{
+		var userId = Guid.Parse(User.FindFirst("id")!.Value);
+		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value, true);
+		try
+		{
+			var result = await bookingService.CancelBookingAsync(bookingId, userId, role);
+			if (!result.IsSuccess)
+				return Forbid(result.ErrorMessage);
+			return Ok(result.Value);
+		}
+		catch (PermissionException e)
+		{
+			return Forbid(e.Message);
+		}
+		catch (OutOfDateException e)
+		{
+			return BadRequest(e.Message);
+		}
+		catch (EventAlreadyStartedException e)
+		{
+			return BadRequest(e.Message);
+		}
 	}
 }

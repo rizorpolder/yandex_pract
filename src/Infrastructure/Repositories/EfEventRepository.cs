@@ -1,5 +1,5 @@
 using Application.Services.Abstraction.Repositories;
-using Domain.Models.Event;
+using Domain.Models.Events;
 using Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 

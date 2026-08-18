@@ -7,9 +7,11 @@ using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
 using Domain.Exceptions;
-using Domain.Models.Booking;
-using Domain.Models.Event;
+using Domain.Models.Bookings;
+using Domain.Models.Bookings.Options;
+using Domain.Models.Events;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace EventTests.Tests;
@@ -27,7 +29,11 @@ public class BookingTests
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo.Object, filter);
-		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object);
+		var options = Options.Create(new BookingOptions
+		{
+			LimitPerUser = 10,
+		});
+		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object, options);
 
 		return (eventRepo, bookingRepo, eventService, bookingService);
 	}
@@ -60,8 +66,8 @@ public class BookingTests
 		var added = await eventService.CreateEventAsync(dto);
 		Assert.True(added.IsSuccess);
 
-
-		var booking = new Booking(createdEvent.Id);
+		var userId = Guid.NewGuid();
+		var booking = new Booking(createdEvent.Id, userId);
 
 		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
 			.Returns(Task.CompletedTask);
@@ -72,7 +78,7 @@ public class BookingTests
 		bookingRepo.Setup(r => r.GetBookingAsync(booking.Id))
 			.ReturnsAsync(booking);
 
-		var bookingResult = await bookingService.CreateBookingAsync(createdEvent.Id);
+		var bookingResult = await bookingService.CreateBookingAsync(createdEvent.Id, userId);
 
 		Assert.True(bookingResult.IsSuccess);
 		Assert.NotNull(bookingResult.Value);
@@ -81,7 +87,6 @@ public class BookingTests
 		eventRepo.Verify(r => r.AddAsync(It.IsAny<Event>()), Times.Once);
 		bookingRepo.Verify(r => r.AddBookingAsync(It.IsAny<Booking>()), Times.Once);
 	}
-
 
 	[Fact]
 	public async Task CreateSeveralBookingsTest()
@@ -112,9 +117,10 @@ public class BookingTests
 		Assert.True(added.IsSuccess);
 
 		var eventId = evt.Id;
-
-		var booking1 = new Booking(eventId);
-		var booking2 = new Booking(eventId);
+		var user1 = Guid.NewGuid();
+		var user2 = Guid.NewGuid();
+		var booking1 = new Booking(eventId, user1);
+		var booking2 = new Booking(eventId, user2);
 
 		bookingRepo.SetupSequence(r => r.AddBookingAsync(It.IsAny<Booking>()))
 			.Returns(Task.CompletedTask)
@@ -129,8 +135,8 @@ public class BookingTests
 		bookingRepo.Setup(r => r.GetBookingAsync(booking2.Id))
 			.ReturnsAsync(booking2);
 
-		var result1 = await bookingService.CreateBookingAsync(eventId);
-		var result2 = await bookingService.CreateBookingAsync(eventId);
+		var result1 = await bookingService.CreateBookingAsync(eventId, user1);
+		var result2 = await bookingService.CreateBookingAsync(eventId, user2);
 
 		Assert.True(result1.IsSuccess);
 		Assert.True(result2.IsSuccess);
@@ -147,13 +153,12 @@ public class BookingTests
 		bookingRepo.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
 	}
 
-
 	[Fact]
 	public async Task GetBookingByIdTest()
 	{
 		var (_, bookingRepo, _, bookingService) = CreateServices();
 
-		var booking = new Booking(Guid.NewGuid());
+		var booking = new Booking(Guid.NewGuid(), Guid.NewGuid());
 
 		bookingRepo.Setup(r => r.GetBookingAsync(booking.Id))
 			.ReturnsAsync(booking);
@@ -172,11 +177,12 @@ public class BookingTests
 		var (eventRepo, _, _, bookingService) = CreateServices();
 
 		var wrongId = Guid.NewGuid();
+		var userID = Guid.NewGuid();
 
 		eventRepo.Setup(r => r.GetByIdAsync(wrongId))
-			.ReturnsAsync((Event?)null);
+			.ReturnsAsync((Event?) null);
 
-		var result = await bookingService.CreateBookingAsync(wrongId);
+		var result = await bookingService.CreateBookingAsync(wrongId, userID);
 
 		Assert.False(result.IsSuccess);
 		Assert.Null(result.Value);
@@ -212,9 +218,9 @@ public class BookingTests
 		Assert.True(removed.IsSuccess);
 
 		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
-			.ReturnsAsync((Event?)null);
+			.ReturnsAsync((Event?) null);
 
-		var result = await bookingService.CreateBookingAsync(evt.Id);
+		var result = await bookingService.CreateBookingAsync(evt.Id, Guid.Empty);
 
 		Assert.False(result.IsSuccess);
 		Assert.Null(result.Value);
@@ -228,7 +234,7 @@ public class BookingTests
 		var brokenId = Guid.NewGuid();
 
 		bookingRepo.Setup(r => r.GetBookingAsync(brokenId))
-			.ReturnsAsync((Booking?)null);
+			.ReturnsAsync((Booking?) null);
 
 		var result = await bookingService.GetBookingByIdAsync(brokenId);
 
@@ -243,23 +249,37 @@ public class BookingTests
 		var bookingRepo = new Mock<IBookingRepository>();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
-		var booking = new Booking(evt.Id);
+		var booking = new Booking(evt.Id, Guid.Empty);
+
+		var tcs = new TaskCompletionSource();
 
 		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
 			.ReturnsAsync(evt);
+
 		eventRepo.Setup(r => r.SaveChangesAsync())
 			.Returns(Task.CompletedTask);
-		
+
 		bookingRepo.Setup(r => r.GetPendingAsync())
-			.ReturnsAsync(() => booking.Status == BookingStatus.Pending
-				? new List<Booking> { booking }
-				: new List<Booking>());
+			.ReturnsAsync(() =>
+			{
+				if (booking.Status == BookingStatus.Pending)
+					return new List<Booking> {booking};
+
+				return new List<Booking>();
+			});
+
 		bookingRepo.Setup(r => r.SaveChangesAsync())
+			.Callback(() =>
+			{
+				if (booking.Status == BookingStatus.Confirmed)
+					tcs.TrySetResult();
+			})
 			.Returns(Task.CompletedTask);
 
 		var services = new ServiceCollection();
 		services.AddSingleton(eventRepo.Object);
 		services.AddSingleton(bookingRepo.Object);
+
 		var provider = services.BuildServiceProvider();
 		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
 
@@ -268,7 +288,7 @@ public class BookingTests
 		using var cts = new CancellationTokenSource();
 		var workerStartTask = worker.StartAsync(cts.Token);
 
-		await Task.Delay(200, CancellationToken.None);
+		await tcs.Task;
 
 		await cts.CancelAsync();
 		await workerStartTask;
@@ -290,7 +310,7 @@ public class BookingTests
 
 		var before = evt.AvailableSeats;
 
-		var result = await bookingService.CreateBookingAsync(evt.Id);
+		var result = await bookingService.CreateBookingAsync(evt.Id, Guid.Empty);
 
 		Assert.True(result.IsSuccess);
 		Assert.NotNull(result.Value);
@@ -309,9 +329,10 @@ public class BookingTests
 		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
 
-		var b1 = await bookingService.CreateBookingAsync(evt.Id);
-		var b2 = await bookingService.CreateBookingAsync(evt.Id);
-		var b3 = await bookingService.CreateBookingAsync(evt.Id);
+		var userId = Guid.NewGuid();
+		var b1 = await bookingService.CreateBookingAsync(evt.Id, userId);
+		var b2 = await bookingService.CreateBookingAsync(evt.Id, userId);
+		var b3 = await bookingService.CreateBookingAsync(evt.Id, userId);
 
 		Assert.True(b1.IsSuccess);
 		Assert.True(b2.IsSuccess);
@@ -338,11 +359,12 @@ public class BookingTests
 		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
 		eventRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
+		var userId = Guid.NewGuid();
 
-		var first = await bookingService.CreateBookingAsync(evt.Id);
+		var first = await bookingService.CreateBookingAsync(evt.Id, userId);
 		Assert.True(first.IsSuccess);
 
-		await Assert.ThrowsAsync<NoAvailableSeatsException>(() => bookingService.CreateBookingAsync(evt.Id));
+		await Assert.ThrowsAsync<NoAvailableSeatsException>(() => bookingService.CreateBookingAsync(evt.Id, userId));
 	}
 
 	[Fact]
@@ -352,9 +374,9 @@ public class BookingTests
 
 		var id = Guid.NewGuid();
 
-		eventRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Event?)null);
+		eventRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Event?) null);
 
-		var result = await bookingService.CreateBookingAsync(id);
+		var result = await bookingService.CreateBookingAsync(id, Guid.Empty);
 
 		Assert.False(result.IsSuccess);
 		Assert.Null(result.Value);
@@ -369,13 +391,14 @@ public class BookingTests
 
 		eventRepo.Setup(r => r.GetByIdAsync(evt.Id)).ReturnsAsync(evt);
 
-		await Assert.ThrowsAsync<NoAvailableSeatsException>(() => bookingService.CreateBookingAsync(evt.Id));
+		await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
+			bookingService.CreateBookingAsync(evt.Id, Guid.Empty));
 	}
 
 	[Fact]
 	public void Booking_Confirm_SetsStatusAndProcessedAt()
 	{
-		var booking = new Booking(Guid.NewGuid());
+		var booking = new Booking(Guid.NewGuid(), Guid.NewGuid());
 
 		booking.Confirm();
 
@@ -386,7 +409,7 @@ public class BookingTests
 	[Fact]
 	public void Booking_Reject_SetsStatusAndProcessedAt()
 	{
-		var booking = new Booking(Guid.NewGuid());
+		var booking = new Booking(Guid.NewGuid(), Guid.NewGuid());
 
 		booking.Reject();
 
@@ -409,7 +432,7 @@ public class BookingTests
 			.Callback<Booking>(b => captured = b)
 			.Returns(Task.CompletedTask);
 
-		var result = await bookingService.CreateBookingAsync(evt.Id);
+		var result = await bookingService.CreateBookingAsync(evt.Id, Guid.NewGuid());
 		Assert.True(result.IsSuccess);
 		Assert.NotNull(captured);
 
@@ -436,15 +459,15 @@ public class BookingTests
 		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
 			.Callback<Booking>(b => captured = b)
 			.Returns(Task.CompletedTask);
-
-		var result1 = await bookingService.CreateBookingAsync(evt.Id);
+		var userId = Guid.NewGuid();
+		var result1 = await bookingService.CreateBookingAsync(evt.Id, userId);
 		Assert.True(result1.IsSuccess);
 		Assert.NotNull(captured);
 
 		captured!.Reject();
 		evt.ReleaseSeats();
 
-		var result2 = await bookingService.CreateBookingAsync(evt.Id);
+		var result2 = await bookingService.CreateBookingAsync(evt.Id, userId);
 
 		Assert.True(result2.IsSuccess);
 		Assert.NotNull(result2.Value);
@@ -470,7 +493,7 @@ public class BookingTests
 		{
 			try
 			{
-				var result = await bookingService.CreateBookingAsync(evt.Id);
+				var result = await bookingService.CreateBookingAsync(evt.Id, Guid.NewGuid());
 				if (result.IsSuccess)
 					Interlocked.Increment(ref successes);
 			}
@@ -486,7 +509,6 @@ public class BookingTests
 		Assert.Equal(20 - totalSeats, exceptions);
 		Assert.Equal(0, evt.AvailableSeats);
 	}
-
 
 	[Fact]
 	public async Task ConcurrentBookings_AllIdsAreUnique()
@@ -504,7 +526,7 @@ public class BookingTests
 
 		var tasks = Enumerable.Range(0, totalSeats).Select(async _ =>
 		{
-			var result = await bookingService.CreateBookingAsync(evt.Id);
+			var result = await bookingService.CreateBookingAsync(evt.Id, Guid.NewGuid());
 
 			Assert.True(result.IsSuccess);
 			ids.Add(result.Value!.Id);
@@ -514,5 +536,122 @@ public class BookingTests
 
 		Assert.Equal(totalSeats, ids.Count);
 		Assert.Equal(totalSeats, ids.Distinct().Count());
+	}
+
+	[Fact]
+	public async Task BookingPastEvent_ShouldFail()
+	{
+		var (eventRepo, bookingRepo, eventService, bookingService) = CreateServices();
+
+		var pastEvent = new Event(
+			"past",
+			"desc",
+			DateTime.UtcNow.AddHours(-2),
+			DateTime.UtcNow.AddHours(-1),
+			10);
+
+		eventRepo.Setup(r => r.GetByIdAsync(pastEvent.Id))
+			.ReturnsAsync(pastEvent);
+
+		var userId = Guid.NewGuid();
+
+		await Assert.ThrowsAsync<OutOfDateException>(() =>
+			bookingService.CreateBookingAsync(pastEvent.Id, userId));
+	}
+
+	[Fact]
+	public async Task BookingLimitReached_ShouldFail()
+	{
+		var (eventRepo, bookingRepo, eventService, bookingService) = CreateServices();
+
+		var evt = new Event(
+			"title",
+			"desc",
+			DateTime.Now,
+			DateTime.Now.AddHours(1),
+			100);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
+
+		var userId = Guid.NewGuid();
+
+		bookingRepo.Setup(r => r.GetActiveBookingsCountAsync(userId))
+			.ReturnsAsync(10);
+
+		await Assert.ThrowsAsync<BookingLimitReachedException>(() => bookingService.CreateBookingAsync(evt.Id, userId));
+	}
+
+	[Fact]
+	public async Task BookingBelowLimit_ShouldSucceed()
+	{
+		var (eventRepo, bookingRepo, eventService, bookingService) = CreateServices();
+
+		var evt = new Event(
+			"title",
+			"desc",
+			DateTime.Now,
+			DateTime.Now.AddHours(1),
+			100);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
+
+		var userId = Guid.NewGuid();
+
+		bookingRepo.Setup(r => r.GetActiveBookingsCountAsync(userId))
+			.ReturnsAsync(9);
+
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
+			.Returns(Task.CompletedTask);
+
+		bookingRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var result = await bookingService.CreateBookingAsync(evt.Id, userId);
+
+		Assert.True(result.IsSuccess);
+		Assert.NotNull(result.Value);
+		Assert.Equal(evt.Id, result.Value.EventId);
+		Assert.Equal(userId, result.Value.UserId);
+	}
+
+	[Fact]
+	public async Task BookingLimitIsPerUser_NotGlobal()
+	{
+		var (eventRepo, bookingRepo, eventService, bookingService) = CreateServices();
+
+		var evt = new Event(
+			"title",
+			"desc",
+			DateTime.Now,
+			DateTime.Now.AddHours(1),
+			100);
+
+		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
+			.ReturnsAsync(evt);
+
+		var user1 = Guid.NewGuid();
+		var user2 = Guid.NewGuid();
+
+		bookingRepo.Setup(r => r.GetActiveBookingsCountAsync(user1))
+			.ReturnsAsync(10);
+
+		bookingRepo.Setup(r => r.GetActiveBookingsCountAsync(user2))
+			.ReturnsAsync(0);
+
+		await Assert.ThrowsAsync<BookingLimitReachedException>(() => bookingService.CreateBookingAsync(evt.Id, user1));
+
+		bookingRepo.Setup(r => r.AddBookingAsync(It.IsAny<Booking>()))
+			.Returns(Task.CompletedTask);
+
+		bookingRepo.Setup(r => r.SaveChangesAsync())
+			.Returns(Task.CompletedTask);
+
+		var result2 = await bookingService.CreateBookingAsync(evt.Id, user2);
+		Assert.True(result2.IsSuccess);
+		Assert.NotNull(result2.Value);
+		Assert.Equal(evt.Id, result2.Value.EventId);
+		Assert.Equal(user2, result2.Value.UserId);
 	}
 }
