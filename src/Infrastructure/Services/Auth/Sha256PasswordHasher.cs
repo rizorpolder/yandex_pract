@@ -15,7 +15,7 @@ public class Sha256PasswordHasher : IPasswordHasher
 
 	public bool VerifyHash(string password, string hash)
 	{
-		var result = _hasher.VerifyHashedPassword(null!, password, hash);
+		var result = _hasher.VerifyHashedPassword(null!, hash, password);
 		return result == PasswordVerificationResult.Success;
 	}
 }
