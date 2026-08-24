@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 
-namespace IntegrationTest.Tests;
+namespace IntegrationTest.IntegrationTests;
 
 [Collection("Database")]
 public sealed class UsersTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>

@@ -3,11 +3,10 @@ using Application.Services.Abstraction.Services;
 using Application.Services.Abstraction.Services.Auth;
 using Application.Services.UserService;
 using Domain.Models.Users;
-
 using Moq;
 using Xunit;
 
-namespace EventTests.Tests;
+namespace UnitTests.UnitTests;
 
 public class UserTests
 {
