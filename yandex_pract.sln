@@ -4,9 +4,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AuthService", "AuthService"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EventsService", "EventsService", "{5C792D47-E14D-4ED0-AEB7-2780359C80DC}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BookingService", "BookingService", "{AB0183A5-63F4-4243-A5CE-15E1300955AD}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\AuthService\Application\Application.csproj", "{8DB1C53F-1023-462A-8721-B288634F9E4F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BookingService", "BookingService", "{AB0183A5-63F4-4243-A5CE-15E1300955AD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\BookingService\Application\Application.csproj", "{99C188BA-4D3F-4E08-B241-7E6458512C0F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\EventsService\Application\Application.csproj", "{AB34F71A-BC6C-4196-AE07-ACA2AF623290}"
 EndProject
@@ -14,32 +16,45 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\AuthService\D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\EventsService\Domain\Domain.csproj", "{46F6A28D-A1BA-4249-A6F2-48A4A6C6CE2F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\BookingService\Domain\Domain.csproj", "{E9CBEF95-B265-4088-8CB9-11D5B886A335}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\EventsService\Infrastructure\Infrastructure.csproj", "{E5F87CA9-2E33-4F0D-A1F4-7E22F5A6A593}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\AuthService\Infrastructure\Infrastructure.csproj", "{41F7A1C2-A7AB-4361-B797-E1FA565ADB3F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "src\AuthService\Presentation\Presentation.csproj", "{040F0C75-66D4-4759-B177-CC114FB4A4B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\BookingService\Infrastructure\Infrastructure.csproj", "{5CAE0F31-91B4-4CE3-A2D1-8F582FDDD9A4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web", "src\AuthService\Web\Web.csproj", "{B3D4FD52-33F4-4383-B157-6D66E1278B6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "src\EventsService\Presentation\Presentation.csproj", "{64E5D758-E0EF-4C87-84EB-DB99A24777C4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web", "src\EventsService\Web\Web.csproj", "{A8F227AF-4429-41B3-94C2-036C4245590D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web", "src\BookingService\Web\Web.csproj", "{BED2B650-B29C-4A9A-BFAE-F0F69AB8D611}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "src\AuthService\Presentation\Presentation.csproj", "{040F0C75-66D4-4759-B177-CC114FB4A4B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "src\EventsService\Presentation\Presentation.csproj", "{64E5D758-E0EF-4C87-84EB-DB99A24777C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "src\BookingService\Presentation\Presentation.csproj", "{F8A2A60E-5503-4CE4-A5B0-133B7DE47118}"
+EndProject
+
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "src\EventsService\Tests\UnitTests\UnitTests.csproj", "{DB20D57B-7A25-4065-8FF2-DF6C4E13DF0F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "src\EventsService\Tests\IntegrationTests\IntegrationTests.csproj", "{2ED9D5D1-7B8C-486E-BAEF-8719C5A60BFE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\BookingService\Domain\Domain.csproj", "{E9CBEF95-B265-4088-8CB9-11D5B886A335}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{F000A08B-64A8-4F5F-8E2E-E413D79077A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\BookingService\Application\Application.csproj", "{99C188BA-4D3F-4E08-B241-7E6458512C0F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Contracts", "src\Shared\Contracts\Contracts.csproj", "{11814759-35AF-40A7-B386-BEE7C1673BDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\BookingService\Infrastructure\Infrastructure.csproj", "{5CAE0F31-91B4-4CE3-A2D1-8F582FDDD9A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "src\Shared\Common\Common.csproj", "{79478A9A-E29B-4B9F-A1DD-9501E48A8013}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "src\BookingService\Presentation\Presentation.csproj", "{F8A2A60E-5503-4CE4-A5B0-133B7DE47118}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "src\AuthService\Tests\UnitTests\UnitTests.csproj", "{FF77061D-CE87-486B-9196-71847F3E3F40}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web", "src\BookingService\Web\Web.csproj", "{BED2B650-B29C-4A9A-BFAE-F0F69AB8D611}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "src\AuthService\Tests\IntegrationTests\IntegrationTests.csproj", "{FB2D3316-2EA8-4289-AC32-6C8677F4E77A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4736A1B3-FE68-45F2-855C-CF86B25F13CE}"
+EndProject
+
+
 
 
 Global
@@ -61,7 +76,57 @@ Global
 		{5CAE0F31-91B4-4CE3-A2D1-8F582FDDD9A4} = {AB0183A5-63F4-4243-A5CE-15E1300955AD}
 		{F8A2A60E-5503-4CE4-A5B0-133B7DE47118} = {AB0183A5-63F4-4243-A5CE-15E1300955AD}
 		{BED2B650-B29C-4A9A-BFAE-F0F69AB8D611} = {AB0183A5-63F4-4243-A5CE-15E1300955AD}
+		{11814759-35AF-40A7-B386-BEE7C1673BDE} = {F000A08B-64A8-4F5F-8E2E-E413D79077A5}
+		{79478A9A-E29B-4B9F-A1DD-9501E48A8013} = {F000A08B-64A8-4F5F-8E2E-E413D79077A5}
+		{4736A1B3-FE68-45F2-855C-CF86B25F13CE} = {F89D9B8B-51EB-4E53-9772-8981575E5A2B}
+		{FF77061D-CE87-486B-9196-71847F3E3F40} = {4736A1B3-FE68-45F2-855C-CF86B25F13CE}
+		{FB2D3316-2EA8-4289-AC32-6C8677F4E77A} = {4736A1B3-FE68-45F2-855C-CF86B25F13CE}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8DB1C53F-1023-462A-8721-B288634F9E4F}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{8DB1C53F-1023-462A-8721-B288634F9E4F}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{99C188BA-4D3F-4E08-B241-7E6458512C0F}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{99C188BA-4D3F-4E08-B241-7E6458512C0F}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{AB34F71A-BC6C-4196-AE07-ACA2AF623290}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{AB34F71A-BC6C-4196-AE07-ACA2AF623290}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{3BAC8427-A545-4297-815E-65CFC8D56586}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{3BAC8427-A545-4297-815E-65CFC8D56586}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{46F6A28D-A1BA-4249-A6F2-48A4A6C6CE2F}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{46F6A28D-A1BA-4249-A6F2-48A4A6C6CE2F}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{E9CBEF95-B265-4088-8CB9-11D5B886A335}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{E9CBEF95-B265-4088-8CB9-11D5B886A335}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{E5F87CA9-2E33-4F0D-A1F4-7E22F5A6A593}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{E5F87CA9-2E33-4F0D-A1F4-7E22F5A6A593}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{41F7A1C2-A7AB-4361-B797-E1FA565ADB3F}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{41F7A1C2-A7AB-4361-B797-E1FA565ADB3F}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{5CAE0F31-91B4-4CE3-A2D1-8F582FDDD9A4}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{5CAE0F31-91B4-4CE3-A2D1-8F582FDDD9A4}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{2ED9D5D1-7B8C-486E-BAEF-8719C5A60BFE}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{2ED9D5D1-7B8C-486E-BAEF-8719C5A60BFE}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{040F0C75-66D4-4759-B177-CC114FB4A4B2}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{040F0C75-66D4-4759-B177-CC114FB4A4B2}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{64E5D758-E0EF-4C87-84EB-DB99A24777C4}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{64E5D758-E0EF-4C87-84EB-DB99A24777C4}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{F8A2A60E-5503-4CE4-A5B0-133B7DE47118}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{F8A2A60E-5503-4CE4-A5B0-133B7DE47118}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{DB20D57B-7A25-4065-8FF2-DF6C4E13DF0F}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{DB20D57B-7A25-4065-8FF2-DF6C4E13DF0F}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{B3D4FD52-33F4-4383-B157-6D66E1278B6B}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{B3D4FD52-33F4-4383-B157-6D66E1278B6B}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{A8F227AF-4429-41B3-94C2-036C4245590D}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{A8F227AF-4429-41B3-94C2-036C4245590D}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{BED2B650-B29C-4A9A-BFAE-F0F69AB8D611}.Configuration|Any CPU.ActiveCfg = Configuration|Any CPU
+		{BED2B650-B29C-4A9A-BFAE-F0F69AB8D611}.Configuration|Any CPU.Build.0 = Configuration|Any CPU
+		{11814759-35AF-40A7-B386-BEE7C1673BDE}.Configuration|Any CPU.ActiveCfg = Debug|Any CPU
+		{11814759-35AF-40A7-B386-BEE7C1673BDE}.Configuration|Any CPU.Build.0 = Debug|Any CPU
+		{79478A9A-E29B-4B9F-A1DD-9501E48A8013}.Configuration|Any CPU.ActiveCfg = Debug|Any CPU
+		{79478A9A-E29B-4B9F-A1DD-9501E48A8013}.Configuration|Any CPU.Build.0 = Debug|Any CPU
+		{FF77061D-CE87-486B-9196-71847F3E3F40}.Configuration|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF77061D-CE87-486B-9196-71847F3E3F40}.Configuration|Any CPU.Build.0 = Debug|Any CPU
+		{FB2D3316-2EA8-4289-AC32-6C8677F4E77A}.Configuration|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB2D3316-2EA8-4289-AC32-6C8677F4E77A}.Configuration|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Configuration|Any CPU = Configuration|Any CPU
 	EndGlobalSection
 EndGlobal
