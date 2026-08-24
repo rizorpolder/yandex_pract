@@ -12,6 +12,7 @@
 
 
     <ItemGroup>
+        <PackageReference Include="Confluent.Kafka" Version="2.15.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4"/>
         <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4"/>
@@ -33,6 +34,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\Shared\Contracts\Contracts.csproj" />
         <ProjectReference Include="..\Application\Application.csproj"/>
         <ProjectReference Include="..\Domain\Domain.csproj"/>
     </ItemGroup>

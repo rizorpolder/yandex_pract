@@ -10,7 +10,6 @@ public class Event : IEquatable<Event>
 
 	public int TotalSeats { get; private set; }
 	public int AvailableSeats { get; private set; }
-	
 	private Event()
 	{
 	}
