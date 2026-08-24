@@ -11,7 +11,7 @@ namespace Presentation;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
+	public static IServiceCollection AddPresentation(this IServiceCollection services)
 	{
 		services.AddControllers()
 			.AddJsonOptions(options =>

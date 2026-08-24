@@ -1,17 +1,22 @@
 using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
+using Common.Tests.Interfaces;
+using Infrastructure.Contexts;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
-using IntegrationTest.Tests.Interfaces;
 
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
+public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];
+
+	public FilterTest(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
+	{
+	}
 
 	[Fact]
 	public async Task PaginationWithTitleFilter_ShouldReturnCorrectFilteredPage()
@@ -97,14 +102,14 @@ public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepo
 			var page = await service.GetEvents(null, from, to, 2, 5);
 
 			Assert.Equal(5, page.Data.Count);
-			Assert.All(page.Data, e =>
-			{
-				Assert.True(e.StartAt >= from);
-				Assert.True(e.EndAt <= to);
-			});
+			Assert.All(page.Data,
+				e =>
+				{
+					Assert.True(e.StartAt >= from);
+					Assert.True(e.EndAt <= to);
+				});
 		}
 	}
-
 
 	[Fact]
 	public async Task PaginationWithCombinedFilters_ShouldReturnCorrectFilteredPage()
@@ -150,15 +155,15 @@ public sealed class FilterTest(PostgresContainerFixture fixture) : ABaseTestRepo
 
 			Assert.True(page.Data.Count <= 10);
 
-			Assert.All(page.Data, e =>
-			{
-				Assert.Contains("meeting", e.Title, StringComparison.OrdinalIgnoreCase);
-				Assert.True(e.StartAt >= from);
-				Assert.True(e.EndAt <= to);
-			});
+			Assert.All(page.Data,
+				e =>
+				{
+					Assert.Contains("meeting", e.Title, StringComparison.OrdinalIgnoreCase);
+					Assert.True(e.StartAt >= from);
+					Assert.True(e.EndAt <= to);
+				});
 		}
 	}
-
 
 	[Fact]
 	public async Task PaginationOutOfRange_ShouldReturnEmptyPage()

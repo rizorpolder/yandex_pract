@@ -1,9 +1,7 @@
 ﻿using Application.Services.Abstraction.Services;
-using Application.Services.BackgroundBookingService;
-using Application.Services.BookingService;
+using Application.Services.EventBackgroundService;
 using Application.Services.EventService;
 using Application.Services.Filters;
-using Application.Services.UserService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -14,9 +12,7 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddScoped<EventFilterService>();
 		services.AddScoped<IEventService, EventService>();
-		services.AddScoped<IBookingService, BookingService>();
-		services.AddScoped<IUserService, UserService>();
-		services.AddHostedService<BackgroundBookingService>();
+		services.AddHostedService<BackgroundEventService>();
 		return services;
 	}
 }

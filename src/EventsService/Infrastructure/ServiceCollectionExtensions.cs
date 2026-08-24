@@ -1,15 +1,11 @@
-﻿using System.Text;
-using Application.Services.Abstraction.Repositories;
-using Application.Services.Abstraction.Services.Auth;
+﻿using Application.Services.Abstraction.Repositories;
 using Infrastructure.Contexts;
 using Infrastructure.Interceptors;
 using Infrastructure.Repositories;
-using Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure;
 
@@ -26,11 +22,6 @@ public static class ServiceCollectionExtensions
 		});
 
 		services.AddScoped<IEventRepository, EfEventRepository>();
-		services.AddScoped<IBookingRepository, EfBookingRepository>();
-		services.AddScoped<IUserRepository, EfUserRepository>();
-		
-		services.AddScoped<IJwtGenerator, JwtGenerator>();
-		services.AddScoped<IPasswordHasher, Sha256PasswordHasher>();
 
 		return services;
 	}

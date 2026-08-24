@@ -1,42 +1,30 @@
 ﻿using Application.Services.Abstraction.Repositories;
 using Application.Services.Abstraction.Services;
-using Application.Services.BookingService;
 using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
-using Domain.Models.Bookings.Options;
 using Domain.Models.Events;
-using Microsoft.Extensions.Options;
 using Moq;
 
-namespace EventTests.Tests;
+namespace UnitTests.Tests.UnitTests;
 
 public class CrudTests
 {
-	private (Mock<IEventRepository> eventRepo,
-		Mock<IBookingRepository> bookingRepo,
-		IEventService eventService,
-		IBookingService bookingService) CreateServices()
+	private (Mock<IEventRepository> eventRepo, IEventService eventService) CreateServices()
 	{
 		var eventRepo = new Mock<IEventRepository>();
-		var bookingRepo = new Mock<IBookingRepository>();
 
 		var filter = new EventFilterService();
 
 		var eventService = new EventService(eventRepo.Object, filter);
-		var options = Options.Create(new BookingOptions
-		{
-			LimitPerUser = 10,
-		});
-		var bookingService = new BookingService(bookingRepo.Object, eventRepo.Object,options);
 
-		return (eventRepo, bookingRepo, eventService, bookingService);
+		return (eventRepo, eventService);
 	}
 
 	[Fact]
 	public async Task CreateEventTest()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
 		var dto = new EventDto()
 		{
@@ -59,24 +47,24 @@ public class CrudTests
 		Assert.True(result.IsSuccess);
 
 		eventRepo.Verify(r => r.AddAsync(It.Is<Event>(e =>
-			e.Title == dto.Title &&
-			e.Description == dto.Description &&
-			e.TotalSeats == dto.TotalSeats)), Times.Once);
+				e.Title == dto.Title &&
+				e.Description == dto.Description &&
+				e.TotalSeats == dto.TotalSeats)),
+			Times.Once);
 
 		eventRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
 	}
 
-
 	[Fact]
 	public async Task GetAllEventsTest()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
 		var e1 = new Event("A", "desc", DateTime.Now, DateTime.Now.AddMinutes(1), 3);
 		var e2 = new Event("B", "desc", DateTime.Now, DateTime.Now.AddMinutes(2), 5);
 
 		eventRepo.Setup(r => r.GetAllEventsAsync())
-			.ReturnsAsync(new List<Event> { e1, e2 });
+			.ReturnsAsync(new List<Event> {e1, e2});
 
 		var result = await eventService.GetEvents(null, null, null, 1, 10);
 
@@ -88,7 +76,7 @@ public class CrudTests
 	[Fact]
 	public async Task GetEventByID()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
 		var evt = new Event("title", "desc", DateTime.Now, DateTime.Now.AddSeconds(10), 3);
 
@@ -106,12 +94,12 @@ public class CrudTests
 	[Fact]
 	public async Task GetEventByIncorrectID()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
 		var id = Guid.NewGuid();
 
 		eventRepo.Setup(r => r.GetByIdAsync(id))
-			.ReturnsAsync((Event?)null);
+			.ReturnsAsync((Event?) null);
 
 		var result = await eventService.GetEventById(id);
 
@@ -122,10 +110,13 @@ public class CrudTests
 	[Fact]
 	public async Task UpdateEventTest()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
-		var original = new Event("oldTitle", "oldDescription",
-			DateTime.Now, DateTime.Now.AddSeconds(10), 3);
+		var original = new Event("oldTitle",
+			"oldDescription",
+			DateTime.Now,
+			DateTime.Now.AddSeconds(10),
+			3);
 
 		var dto = new EventDto()
 		{
@@ -155,7 +146,7 @@ public class CrudTests
 	[Fact]
 	public async Task UpdateBrokenIDEventTest()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
 		var dto = new EventDto()
 		{
@@ -168,7 +159,7 @@ public class CrudTests
 		};
 
 		eventRepo.Setup(r => r.GetByIdAsync(dto.ID))
-			.ReturnsAsync((Event?)null);
+			.ReturnsAsync((Event?) null);
 
 		var result = await eventService.UpdateEventAsync(dto.ID, dto);
 
@@ -178,9 +169,8 @@ public class CrudTests
 	[Fact]
 	public async Task DeleteEventTest()
 	{
-		var (eventRepo, _, eventService, _) = CreateServices();
+		var (eventRepo, eventService) = CreateServices();
 
-		
 
 		var evt = new Event("newTitle", "newDescription", DateTime.Now, DateTime.Now.AddSeconds(20), 3);
 
@@ -193,7 +183,7 @@ public class CrudTests
 			EndAt = evt.EndAt,
 			TotalSeats = evt.TotalSeats
 		};
-		
+
 		eventRepo.Setup(r => r.GetByIdAsync(evt.Id))
 			.ReturnsAsync(evt);
 

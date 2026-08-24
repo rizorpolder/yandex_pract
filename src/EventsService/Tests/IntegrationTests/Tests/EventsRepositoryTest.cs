@@ -1,16 +1,22 @@
+using Common.Tests.Interfaces;
 using Domain.Models.Events;
+using Infrastructure.Contexts;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
-using IntegrationTest.Tests.Interfaces;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class EventsRepositoryTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
+public sealed class EventsRepositoryTest: ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];
+	
+	public EventsRepositoryTest(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
+	{
+	}
 
 	[Fact]
 	public async Task CreateEvent_ShouldPersistToDatabase()

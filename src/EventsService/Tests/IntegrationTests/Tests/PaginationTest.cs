@@ -1,17 +1,22 @@
 using Application.Services.EventService;
 using Application.Services.EventService.Dto;
 using Application.Services.Filters;
+using Common.Tests.Interfaces;
+using Infrastructure.Contexts;
 using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
-using IntegrationTest.Tests.Interfaces;
 
 namespace IntegrationTest.Tests;
 
 [Collection("Database")]
-public sealed class PaginationTest(PostgresContainerFixture fixture) : ABaseTestRepository(fixture)
+public sealed class PaginationTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
 		["events", "bookings"];
+
+	public PaginationTest(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
+	{
+	}
 
 	[Fact]
 	public async Task PaginationTest_ShouldReturnCorrectPages()

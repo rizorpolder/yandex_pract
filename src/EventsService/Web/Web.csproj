@@ -5,27 +5,17 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
         <RootNamespace>yandex_pract</RootNamespace>
+        <Configurations>Debug;Release;Configuration</Configurations>
+        <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
-        <_ContentIncludedByDefault Remove="EventServiceTest\obj\EventServiceTest.csproj.nuget.dgspec.json"/>
-        <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.assets.json"/>
-        <_ContentIncludedByDefault Remove="EventServiceTest\obj\project.packagespec.json"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
     </ItemGroup>
-    
+
     <ItemGroup>
-      <Folder Include="CustomException\" />
-    </ItemGroup>
-    
-    <ItemGroup>
+      <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
       <ProjectReference Include="..\Presentation\Presentation.csproj" />
-    </ItemGroup>
-    
-    <ItemGroup>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
     </ItemGroup>
 
 </Project>

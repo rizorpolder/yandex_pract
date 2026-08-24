@@ -5,7 +5,7 @@ using Application.Services.Filters;
 using Domain.Models.Events;
 using Moq;
 
-namespace EventTests.Tests;
+namespace UnitTests.Tests.UnitTests;
 
 public class FilterTests
 {

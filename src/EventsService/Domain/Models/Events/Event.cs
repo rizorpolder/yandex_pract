@@ -10,9 +10,7 @@ public class Event : IEquatable<Event>
 
 	public int TotalSeats { get; private set; }
 	public int AvailableSeats { get; private set; }
-
-	public List<Bookings.Booking> Bookings { get; set; }
-
+	
 	private Event()
 	{
 	}
@@ -61,15 +59,6 @@ public class Event : IEquatable<Event>
 
 	#endregion
 
-	// public Event(EventDto dto)
-	// {
-	// 	Title = dto.Title;
-	// 	Description = dto.Description;
-	// 	StartAt = dto.StartAt;
-	// 	EndAt = dto.EndAt;
-	// 	TotalSeats = dto.TotalSeats.Value;
-	// 	AvailableSeats = TotalSeats;
-	// }
 
 	public void UpdateEvent(Event customEvent)
 	{

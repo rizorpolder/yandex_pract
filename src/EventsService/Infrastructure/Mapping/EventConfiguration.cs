@@ -23,10 +23,7 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
 		builder.Property(e => e.EndAt).HasColumnName("end_at")
 			.HasColumnType("timestamp with time zone")
 			.IsRequired();
-		builder.HasMany(e => e.Bookings)
-			.WithOne(b => b.Event)
-			.HasForeignKey(b => b.EventId);
-
+		
 		builder.ToTable(t => t.HasCheckConstraint(
 			"ck_events_available_seats",
 			"available_seats <= total_seats"));
