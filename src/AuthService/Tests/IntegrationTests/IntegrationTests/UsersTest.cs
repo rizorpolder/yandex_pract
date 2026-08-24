@@ -8,7 +8,6 @@ using Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using Xunit;
 
 namespace IntegrationTest.IntegrationTests;
 
@@ -16,7 +15,7 @@ namespace IntegrationTest.IntegrationTests;
 public sealed class UsersTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
-		["events", "bookings", "users"];
+		["users"];
 
 	public UsersTest(PostgresContainerFixture fixture)
 		: base(fixture, options => new AppDbContext(options))

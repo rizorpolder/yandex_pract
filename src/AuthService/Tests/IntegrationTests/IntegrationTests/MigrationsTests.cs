@@ -1,194 +1,131 @@
+using Application.Services.UserService;
 using Common.Tests.Interfaces;
+using Domain.Models.Users;
 using Infrastructure.Contexts;
+using Infrastructure.Repositories;
+using Infrastructure.Services.Auth;
 using IntegrationTest.Tests.Fixture;
-using Xunit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace IntegrationTest.IntegrationTests;
 
 [Collection("Database")]
 public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
-	protected override string[] TablesToTruncate =>
-		["events", "bookings", "users"];
+	protected override string[] TablesToTruncate => ["users"];
 
 	public MigrationsTests(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
 	{
 	}
 
-	// [Fact]
-	// public async Task Migrations_ShouldApplySuccessfully()
-	// {
-	// 	await using var ctx = CreateContext();
-	//
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var applied = await ctx.Database.GetAppliedMigrationsAsync();
-	// 	Assert.NotEmpty(applied);
-	// 	Assert.Contains(applied, m => m.Contains("InitialCreate"));
-	//
-	// 	var pending = await ctx.Database.GetPendingMigrationsAsync();
-	// 	Assert.Empty(pending);
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldCreateEventsAndBookingsTables()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var eventsExists = await ctx.Database
-	// 		.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'events'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, eventsExists);
-	//
-	// 	var bookingsExists = await ctx.Database
-	// 		.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'bookings'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, bookingsExists);
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldCreateCheckConstraints()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var seatsCheck = await ctx.Database
-	// 		.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_constraint WHERE conname = 'ck_events_available_seats'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, seatsCheck);
-	//
-	// 	var timeCheck = await ctx.Database
-	// 		.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_constraint WHERE conname = 'ck_events_time_range'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, timeCheck);
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldEnforceForeignKeyConstraint()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	ctx.Bookings.Add(new Booking(Guid.NewGuid(), Guid.NewGuid()));
-	//
-	// 	await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldCreateIndexOnBookingsEventId()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var indexExists = await ctx.Database
-	// 		.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_indexes WHERE indexname = 'ix_bookings_eventid'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, indexExists);
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldCreateCorrectColumnTypes()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var startAtType = await ctx.Database
-	// 		.SqlQueryRaw<int>(
-	// 			"SELECT 1 AS \"Value\" FROM information_schema.columns " +
-	// 			"WHERE table_name = 'events' AND column_name = 'start_at' AND data_type = 'timestamp with time zone'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, startAtType);
-	//
-	// 	var idType = await ctx.Database
-	// 		.SqlQueryRaw<int>(
-	// 			"SELECT 1 AS \"Value\" FROM information_schema.columns " +
-	// 			"WHERE table_name = 'bookings' AND column_name = 'id' AND data_type = 'uuid'")
-	// 		.FirstOrDefaultAsync();
-	//
-	// 	Assert.Equal(1, idType);
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldAllowRepositoryOperations()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var dto = new EventDto
-	// 	{
-	// 		Title = "title",
-	// 		Description = "desc",
-	// 		StartAt = DateTime.UtcNow.AddMinutes(5),
-	// 		EndAt = DateTime.UtcNow.AddMinutes(10),
-	// 		TotalSeats = 5
-	// 	};
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(dto);
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
-	//
-	// 	Assert.True(bookingResult.IsSuccess);
-	// 	Assert.NotNull(bookingResult.Value);
-	// 	Assert.Equal(user.Id, bookingResult.Value.UserId);
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldEnforceAvailableSeatsCheck()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var evt = new Event("t",
-	// 		"d",
-	// 		DateTime.UtcNow,
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		10);
-	//
-	// 	evt.ReleaseSeats(100);
-	//
-	// 	ctx.Events.Add(evt);
-	//
-	// 	await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
-	// }
-	//
-	// [Fact]
-	// public async Task Migrations_ShouldEnforceTimeRangeCheck()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var evt = new Event("t",
-	// 		"d",
-	// 		DateTime.UtcNow,
-	// 		DateTime.UtcNow.AddMinutes(-1),
-	// 		10);
-	//
-	// 	ctx.Events.Add(evt);
-	//
-	// 	await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
-	// }
+	[Fact]
+	public async Task Migrations_ShouldApplySuccessfully()
+	{
+		await using var ctx = CreateContext();
+
+		await ctx.Database.MigrateAsync();
+
+		var applied = await ctx.Database.GetAppliedMigrationsAsync();
+		Assert.NotEmpty(applied);
+		Assert.Contains(applied, m => m.Contains("InitialAuthCreate"));
+
+		var pending = await ctx.Database.GetPendingMigrationsAsync();
+		Assert.Empty(pending);
+	}
+
+	[Fact]
+	public async Task Migrations_ShouldCreateUsersTable()
+	{
+		await using var ctx = CreateContext();
+		await ctx.Database.MigrateAsync();
+
+		var usersExists = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'users'")
+			.FirstOrDefaultAsync();
+
+		Assert.Equal(1, usersExists);
+	}
+
+	[Fact]
+	public async Task Migrations_ShouldCreateUniqueIndexOnLogin()
+	{
+		await using var ctx = CreateContext();
+		await ctx.Database.MigrateAsync();
+
+		var indexExists = await ctx.Database
+			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_indexes WHERE indexname = 'ix_users_login'")
+			.FirstOrDefaultAsync();
+
+		Assert.Equal(1, indexExists);
+	}
+
+	[Fact]
+	public async Task Migrations_ShouldEnforceUniqueLoginConstraint()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+		await ctx.Database.MigrateAsync();
+
+		ctx.Users.Add(new User("duplicate", "hash1", UserRole.User));
+		await ctx.SaveChangesAsync();
+
+		ctx.Users.Add(new User("duplicate", "hash2", UserRole.User));
+
+		await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
+	}
+
+	[Fact]
+	public async Task Migrations_ShouldCreateCorrectColumnTypes()
+	{
+		await using var ctx = CreateContext();
+		await ctx.Database.MigrateAsync();
+
+		var idType = await ctx.Database
+			.SqlQueryRaw<int>(
+				"SELECT 1 AS \"Value\" FROM information_schema.columns " +
+				"WHERE table_name = 'users' AND column_name = 'id' AND data_type = 'uuid'")
+			.FirstOrDefaultAsync();
+
+		Assert.Equal(1, idType);
+
+		var loginType = await ctx.Database
+			.SqlQueryRaw<int>(
+				"SELECT 1 AS \"Value\" FROM information_schema.columns " +
+				"WHERE table_name = 'users' AND column_name = 'login' AND data_type = 'character varying'")
+			.FirstOrDefaultAsync();
+
+		Assert.Equal(1, loginType);
+	}
+
+	[Fact]
+	public async Task Migrations_ShouldAllowRepositoryOperations()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+		await ctx.Database.MigrateAsync();
+
+		var repo = new EfUserRepository(ctx);
+		var hasher = new Sha256PasswordHasher();
+
+		var jwtOptions = Options.Create(new JwtOptions
+		{
+			Secret = "test_secret_key_for_integration_tests_1234567890",
+			Issuer = "TestIssuer",
+			Audience = "TestAudience",
+			LifetimeMinutes = 60
+		});
+
+		var jwt = new JwtGenerator(jwtOptions);
+
+		var service = new UserService(repo, hasher, jwt);
+
+		var result = await service.RegisterAsync("integration_user", "pass123");
+
+		Assert.True(result.IsSuccess);
+
+		var savedUser = await ctx.Users.FirstOrDefaultAsync(u => u.Login == "integration_user");
+		Assert.NotNull(savedUser);
+		Assert.Equal(UserRole.User, savedUser.Role);
+	}
 }

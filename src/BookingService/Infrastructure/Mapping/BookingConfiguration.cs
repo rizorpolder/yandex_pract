@@ -16,12 +16,15 @@ public class BookingConfiguration : IEntityTypeConfiguration<BookingModel>
 			.ValueGeneratedNever();
 		builder.Property(x => x.EventId)
 			.HasColumnName("event_id");
+		builder.HasIndex(x => x.EventId)
+			.HasDatabaseName("ix_bookings_eventid");
 
 		builder.Property(x => x.Status)
 			.HasColumnName("status")
 			.HasConversion<string>();
-		
-		builder.HasIndex(x => x.EventId)
-			.HasDatabaseName("ix_bookings_eventid");
+
+		builder.Property(x => x.UserId)
+			.HasColumnName("user_id");
+		builder.HasIndex(x => x.UserId).HasDatabaseName("ix_bookings_userid");
 	}
 }

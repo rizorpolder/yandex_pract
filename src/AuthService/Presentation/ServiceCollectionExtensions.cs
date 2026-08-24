@@ -18,6 +18,8 @@ public static class ServiceCollectionExtensions
 			{
 				options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 			});
+
+		services.AddEndpointsApiExplorer(); // ← критично для Minimal API
 		services.AddSwaggerGen(options =>
 		{
 			options.AddSecurityDefinition("Bearer",
@@ -56,7 +58,11 @@ public static class ServiceCollectionExtensions
 		if (env.IsDevelopment())
 		{
 			app.UseSwagger();
-			app.UseSwaggerUI();
+			app.UseSwaggerUI(options =>
+			{
+				options.RoutePrefix = string.Empty; // UI теперь на "/"
+				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+			});
 		}
 
 		return app;

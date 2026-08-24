@@ -1,14 +1,13 @@
-
 namespace BookingService.Domain.Models.BookingModel;
 
 public class BookingModel
 {
-	public Guid Id;
-	public Guid EventId;
-	public BookingStatus Status;
-	public DateTime CreatedAt;
-	public DateTime ProcessedAt;
-	public Guid UserId;
+	public Guid Id { get; private set; }
+	public Guid EventId { get; private set; }
+	public BookingStatus Status { get; private set; }
+	public DateTime CreatedAt { get; private set; }
+	public DateTime ProcessedAt { get; private set; }
+	public Guid UserId { get; private set; }
 
 	private BookingModel()
 	{

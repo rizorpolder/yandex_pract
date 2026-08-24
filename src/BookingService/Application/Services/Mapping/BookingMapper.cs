@@ -17,14 +17,4 @@ internal static class BookingMapper
 			ProcessedAt = booking.ProcessedAt,
 		};
 	}
-
-	public static BookingModel FromDto(BookingDto booking)
-	{
-		return new BookingModel(booking.EventId, booking.UserId)
-		{
-			Status = booking.Status,
-			CreatedAt = booking.CreatedAt,
-			ProcessedAt = booking.ProcessedAt,
-		};
-	}
 }

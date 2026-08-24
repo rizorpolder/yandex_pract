@@ -61,7 +61,8 @@ public class Program
 
 		app.UsePresentation();
 		app.UseInfrastructure();
-		app.MapEndpoints();
+		var endpoints =  app.MapEndpoints();
+		
 
 		CreateSuperuser(app);
 

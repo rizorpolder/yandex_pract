@@ -8,6 +8,11 @@ services:
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
     volumes:
       - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   events-db:
     image: postgres:16
@@ -17,6 +22,11 @@ services:
       POSTGRES_PASSWORD: ${EVENTS_DB_PASSWORD}
     volumes:
       - events-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   booking-db:
     image: postgres:16
@@ -26,6 +36,11 @@ services:
       POSTGRES_PASSWORD: ${BOOKING_DB_PASSWORD}
     volumes:
       - booking-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # ===== Kafka (KRaft-режим, без Zookeeper) =====
   kafka:
@@ -54,13 +69,15 @@ services:
     ports:
       - "5001:8080"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=auth-db;Port=5432;Database=auth_db;Username=postgres;Password=${AUTH_DB_PASSWORD}
       - Jwt__Secret=${JWT_SECRET}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - Jwt__LifetimeMinutes=${JWT_LIFETIME_MINUTES}
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
 
   events-service:
     build:
@@ -69,14 +86,17 @@ services:
     ports:
       - "5002:8080"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=events-db;Port=5432;Database=events_db;Username=postgres;Password=${EVENTS_DB_PASSWORD}
       - Jwt__Secret=${JWT_SECRET}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
-      - events-db
-      - kafka
+      events-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   booking-service:
     build:
@@ -85,6 +105,7 @@ services:
     ports:
       - "5003:8080"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=booking-db;Port=5432;Database=booking_db;Username=postgres;Password=${BOOKING_DB_PASSWORD}
       - Jwt__Secret=${JWT_SECRET}
       - Jwt__Issuer=${JWT_ISSUER}
@@ -92,8 +113,10 @@ services:
       - BookingParams__LimitPerUser=${BOOKING_USER_LIMIT}
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
-      - booking-db
-      - kafka
+      booking-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
 volumes:
   auth-db-data:
