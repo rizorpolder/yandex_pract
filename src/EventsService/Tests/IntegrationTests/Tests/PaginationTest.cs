@@ -12,7 +12,7 @@ namespace IntegrationTest.Tests;
 public sealed class PaginationTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
-		["events", "bookings"];
+		["events"];
 
 	public PaginationTest(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
 	{

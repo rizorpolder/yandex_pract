@@ -12,7 +12,7 @@ namespace IntegrationTest.Tests;
 public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
-		["events", "bookings"];
+		["events"];
 
 	public FilterTest(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
 	{

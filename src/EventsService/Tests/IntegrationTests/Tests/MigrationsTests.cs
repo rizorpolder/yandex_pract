@@ -1,6 +1,10 @@
 using Common.Tests.Interfaces;
+using EventsService.Application.Services.EventService;
+using EventsService.Application.Services.EventService.Dto;
+using EventsService.Application.Services.Filters;
 using EventsService.Domain.Models.Events;
 using EventsService.Infrastructure.Contexts;
+using EventsService.Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +14,7 @@ namespace IntegrationTest.Tests;
 public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
-		["events", "bookings", "users"];
+		["events", "processed_messages"];
 
 	public MigrationsTests(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
 	{
@@ -20,19 +24,17 @@ public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<
 	public async Task Migrations_ShouldApplySuccessfully()
 	{
 		await using var ctx = CreateContext();
-
 		await ctx.Database.MigrateAsync();
 
 		var applied = await ctx.Database.GetAppliedMigrationsAsync();
 		Assert.NotEmpty(applied);
-		Assert.Contains(applied, m => m.Contains("InitialCreate"));
 
 		var pending = await ctx.Database.GetPendingMigrationsAsync();
 		Assert.Empty(pending);
 	}
 
 	[Fact]
-	public async Task Migrations_ShouldCreateEventsAndBookingsTables()
+	public async Task Migrations_ShouldCreateEventsAndProcessedMessagesTables()
 	{
 		await using var ctx = CreateContext();
 		await ctx.Database.MigrateAsync();
@@ -40,14 +42,13 @@ public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<
 		var eventsExists = await ctx.Database
 			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'events'")
 			.FirstOrDefaultAsync();
-
 		Assert.Equal(1, eventsExists);
 
-		var bookingsExists = await ctx.Database
-			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'bookings'")
+		var processedExists = await ctx.Database
+			.SqlQueryRaw<int>(
+				"SELECT 1 AS \"Value\" FROM information_schema.tables WHERE table_name = 'processed_messages'")
 			.FirstOrDefaultAsync();
-
-		Assert.Equal(1, bookingsExists);
+		Assert.Equal(1, processedExists);
 	}
 
 	[Fact]
@@ -69,30 +70,6 @@ public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<
 		Assert.Equal(1, timeCheck);
 	}
 
-	// [Fact]
-	// public async Task Migrations_ShouldEnforceForeignKeyConstraint()
-	// {
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	ctx.Bookings.Add(new Booking(Guid.NewGuid(), Guid.NewGuid()));
-	//
-	// 	await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
-	// }
-
-	[Fact]
-	public async Task Migrations_ShouldCreateIndexOnBookingsEventId()
-	{
-		await using var ctx = CreateContext();
-		await ctx.Database.MigrateAsync();
-
-		var indexExists = await ctx.Database
-			.SqlQueryRaw<int>("SELECT 1 AS \"Value\" FROM pg_indexes WHERE indexname = 'ix_bookings_eventid'")
-			.FirstOrDefaultAsync();
-
-		Assert.Equal(1, indexExists);
-	}
-
 	[Fact]
 	public async Task Migrations_ShouldCreateCorrectColumnTypes()
 	{
@@ -110,52 +87,42 @@ public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<
 		var idType = await ctx.Database
 			.SqlQueryRaw<int>(
 				"SELECT 1 AS \"Value\" FROM information_schema.columns " +
-				"WHERE table_name = 'bookings' AND column_name = 'id' AND data_type = 'uuid'")
+				"WHERE table_name = 'events' AND column_name = 'id' AND data_type = 'uuid'")
 			.FirstOrDefaultAsync();
 
 		Assert.Equal(1, idType);
 	}
 
-	// [Fact]
-	// public async Task Migrations_ShouldAllowRepositoryOperations()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	// 	await ctx.Database.MigrateAsync();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var dto = new EventDto
-	// 	{
-	// 		Title = "title",
-	// 		Description = "desc",
-	// 		StartAt = DateTime.UtcNow.AddMinutes(5),
-	// 		EndAt = DateTime.UtcNow.AddMinutes(10),
-	// 		TotalSeats = 5
-	// 	};
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(dto);
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
-	//
-	// 	Assert.True(bookingResult.IsSuccess);
-	// 	Assert.NotNull(bookingResult.Value);
-	// 	Assert.Equal(user.Id, bookingResult.Value.UserId);
-	// }
+	[Fact]
+	public async Task Migrations_ShouldAllowDecreaseSeatsOperation()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+		await ctx.Database.MigrateAsync();
+
+		var eventRepo = new EfEventRepository(ctx);
+		var filter = new EventFilterService();
+		var eventService = new EventService(eventRepo, filter);
+
+		var dto = new EventDto
+		{
+			Title = "title",
+			Description = "desc",
+			StartAt = DateTime.UtcNow.AddMinutes(5),
+			EndAt = DateTime.UtcNow.AddMinutes(10),
+			TotalSeats = 5
+		};
+
+		var created = await eventService.CreateEventAsync(dto);
+		Assert.True(created.IsSuccess);
+
+		var result = await eventService.DecreaseAvailableSeatsAsync(created.Value.ID, seatsCount: 3);
+		Assert.True(result.IsSuccess);
+
+		await using var verify = CreateContext();
+		var saved = await verify.Events.FirstAsync(e => e.Id == created.Value.ID);
+		Assert.Equal(2, saved.AvailableSeats);
+	}
 
 	[Fact]
 	public async Task Migrations_ShouldEnforceAvailableSeatsCheck()

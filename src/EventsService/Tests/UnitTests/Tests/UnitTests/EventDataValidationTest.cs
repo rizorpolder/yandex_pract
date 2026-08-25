@@ -1,6 +1,6 @@
 // using System.Net;
 // using System.Net.Http.Json;
-// using Application.Services.EventService.Dto;
+// using EventsService.Application.Services.EventService.Dto;
 // using Microsoft.VisualStudio.TestPlatform.TestHost;
 //
 // public class EventDateValidationTests

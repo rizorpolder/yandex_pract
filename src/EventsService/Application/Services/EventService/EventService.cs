@@ -105,7 +105,7 @@ public class EventService(IEventRepository eventRepository, EventFilterService f
 		if (evt is null)
 			return Result<bool>.Failure("EventNotFound");
 		
-		if(evt.TryReserveSeats(seatsCount))
+		if(!evt.TryReserveSeats(seatsCount))
 			return Result<bool>.Failure("NoAvailableSeats");
 
 		await eventRepository.SaveChangesAsync();

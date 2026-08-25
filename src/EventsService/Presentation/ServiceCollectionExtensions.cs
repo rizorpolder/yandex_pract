@@ -60,7 +60,7 @@ public static class ServiceCollectionExtensions
 			app.UseSwagger();
 			app.UseSwaggerUI(options =>
 			{
-				options.RoutePrefix = string.Empty; // UI теперь на "/"
+				options.RoutePrefix = string.Empty;
 				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
 			});
 		}
