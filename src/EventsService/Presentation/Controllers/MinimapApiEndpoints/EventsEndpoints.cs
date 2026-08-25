@@ -51,9 +51,9 @@ internal static class EventsEndpoints
 		group.MapGet("{id:guid}",
 				async (
 					IEventService eventService,
-					Guid eventId) =>
+					Guid id) =>
 				{
-					var result = await eventService.GetEventById(eventId);
+					var result = await eventService.GetEventById(id);
 
 					if (!result.IsSuccess)
 						return Results.NotFound(new {Message = result.ErrorMessage});
