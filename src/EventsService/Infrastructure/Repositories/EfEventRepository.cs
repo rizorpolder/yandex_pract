@@ -12,6 +12,15 @@ public class EfEventRepository(AppDbContext dbContext) : IEventRepository
 		return await dbContext.Events.AsNoTracking().ToListAsync();
 	}
 
+	public async Task<List<Event>> GetTopEventsAsync(int count)
+	{
+		return await dbContext.Events
+			.Where(e => e.TotalSeats > 0)
+			.OrderByDescending(e => (double) (e.TotalSeats - e.AvailableSeats) / e.TotalSeats)
+			.Take(count)
+			.ToListAsync();
+	}
+
 	public Task<Event?> GetByIdAsync(Guid id)
 	{
 		return dbContext.Events.FirstOrDefaultAsync(x => x.Id.Equals(id));

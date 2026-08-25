@@ -23,9 +23,10 @@ internal static class EventsEndpoints
 		MapCreateEventEndpoint(group);
 		MapUpdateEventByIdEndpoint(group);
 		MapDeleteEventByIdEndpoint(group);
+		MapGetTopEventsEndpoint(group);
 		return group;
 	}
-
+	
 	private static void MapGetEventsEndpoint(RouteGroupBuilder group)
 	{
 		group.MapGet("/",
@@ -151,5 +152,16 @@ internal static class EventsEndpoints
 			.RequireAuthorization(policy => policy.RequireRole("Admin"))
 			.Produces(StatusCodes.Status200OK)
 			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
+	}
+	
+	private static void MapGetTopEventsEndpoint(RouteGroupBuilder group)
+	{
+		group.MapGet("/top", async (IEventService eventService) =>
+			{
+				var result = await eventService.GetTopEventsAsync();
+				return Results.Ok(result);
+			})
+			.WithName("GetTopEvents")
+			.Produces<List<EventDto>>();
 	}
 }
