@@ -1,4 +1,4 @@
-﻿namespace Domain.Models.Events;
+﻿namespace EventsService.Domain.Models.Events;
 
 public class Event : IEquatable<Event>
 {

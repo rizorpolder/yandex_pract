@@ -2,6 +2,7 @@ using Application.Services.Abstraction.Repositories;
 using Application.Services.Abstraction.RequestResult;
 using Application.Services.Abstraction.Services;
 using Application.Services.Abstraction.Services.Auth;
+using Common.Models;
 using Domain.Models.Users;
 
 namespace Application.Services.UserService;

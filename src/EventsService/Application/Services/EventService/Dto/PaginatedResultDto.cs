@@ -1,4 +1,4 @@
-﻿namespace Application.Services.EventService.Dto;
+﻿namespace EventsService.Application.Services.EventService.Dto;
 
 public class PaginatedResultDto
 {

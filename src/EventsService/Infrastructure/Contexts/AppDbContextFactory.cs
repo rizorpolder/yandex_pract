@@ -1,9 +1,8 @@
-﻿using Infrastructure.Contexts;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-namespace Infrastructure;
+namespace EventsService.Infrastructure.Contexts;
 
 public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {

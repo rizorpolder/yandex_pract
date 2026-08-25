@@ -1,8 +1,8 @@
-﻿using Application.Services.Abstraction.Repositories;
-using Application.Services.Abstraction.Services;
-using Application.Services.EventService;
-using Application.Services.Filters;
-using Domain.Models.Events;
+﻿using EventsService.Application.Services.Abstraction.Repositories;
+using EventsService.Application.Services.Abstraction.Services;
+using EventsService.Application.Services.EventService;
+using EventsService.Application.Services.Filters;
+using EventsService.Domain.Models.Events;
 using Moq;
 
 namespace UnitTests.Tests.UnitTests;

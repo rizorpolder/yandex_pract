@@ -2,6 +2,7 @@
 using Application.Services.Abstraction.Services;
 using Application.Services.Abstraction.Services.Auth;
 using Application.Services.UserService;
+using Common.Models;
 using Domain.Models.Users;
 using Moq;
 using Xunit;

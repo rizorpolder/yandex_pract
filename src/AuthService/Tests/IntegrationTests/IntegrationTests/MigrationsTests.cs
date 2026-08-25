@@ -1,4 +1,5 @@
 using Application.Services.UserService;
+using Common.Models;
 using Common.Tests.Interfaces;
 using Domain.Models.Users;
 using Infrastructure.Contexts;

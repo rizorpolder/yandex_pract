@@ -1,10 +1,9 @@
-﻿using Application.Services.Abstraction.Services;
-using Application.Services.EventBackgroundService;
-using Application.Services.EventService;
-using Application.Services.Filters;
+﻿using EventsService.Application.Services.Abstraction.Services;
+using EventsService.Application.Services.EventService;
+using EventsService.Application.Services.Filters;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Application;
+namespace EventsService.Application;
 
 public static class ServiceCollectionExtensions
 {
@@ -12,7 +11,6 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddScoped<EventFilterService>();
 		services.AddScoped<IEventService, EventService>();
-		services.AddHostedService<BackgroundEventService>();
 		return services;
 	}
 }

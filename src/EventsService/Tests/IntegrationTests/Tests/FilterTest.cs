@@ -1,9 +1,9 @@
-using Application.Services.EventService;
-using Application.Services.EventService.Dto;
-using Application.Services.Filters;
 using Common.Tests.Interfaces;
-using Infrastructure.Contexts;
-using Infrastructure.Repositories;
+using EventsService.Application.Services.EventService;
+using EventsService.Application.Services.EventService.Dto;
+using EventsService.Application.Services.Filters;
+using EventsService.Infrastructure.Contexts;
+using EventsService.Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 
 namespace IntegrationTest.Tests;

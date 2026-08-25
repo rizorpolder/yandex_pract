@@ -19,7 +19,9 @@ public static class ServiceCollectionExtensions
 	public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
 	{
 		var connectionString = configuration.GetConnectionString("DefaultConnection");
+		
 		services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));
+		
 		services.AddSingleton<IProducer<string, string>>(sp =>
 		{
 			var opts = sp.GetRequiredService<IOptions<KafkaOptions>>().Value;
@@ -32,8 +34,7 @@ public static class ServiceCollectionExtensions
 		});
 
 		services.AddScoped<IBookingRepository, EfBookingRepository>();
-		services.AddScoped<IBookingRequestPublisher, KafkaBookingRequestPublisher>();
-		services.AddHostedService<SeatsReservationResultConsumer>();
+		services.AddScoped<IBookingConfirmedPublisher, KafkaBookingConfirmedPublisher>();
 		return services;
 	}
 

@@ -1,6 +1,6 @@
-﻿using Domain.Models.Events;
+﻿using EventsService.Domain.Models.Events;
 
-namespace Application.Services.Abstraction.Repositories;
+namespace EventsService.Application.Services.Abstraction.Repositories;
 
 public interface IEventRepository
 {

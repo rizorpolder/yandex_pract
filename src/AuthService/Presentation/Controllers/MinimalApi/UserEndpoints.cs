@@ -1,5 +1,6 @@
 using Application.Services.Abstraction.Services;
 using Application.Services.UserService.Requests;
+using Common.Models;
 using Domain.Models.Users;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
@@ -24,7 +25,7 @@ internal static class UserEndpoints
 						: Results.Ok(result);
 				})
 			.WithName("Register")
-			.Produces<ProblemDetails>(StatusCodes.Status200OK)
+			.Produces(StatusCodes.Status200OK)
 			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
 
@@ -36,7 +37,7 @@ internal static class UserEndpoints
 					return !result.IsSuccess ? Results.Unauthorized() : Results.Ok(result.Value);
 				})
 			.WithName("Login")
-			.Produces<ProblemDetails>(StatusCodes.Status200OK)
+			.Produces(StatusCodes.Status200OK)
 			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
 		group.MapPost("/admin/create",
@@ -50,12 +51,10 @@ internal static class UserEndpoints
 
 					return Results.Ok();
 				})
-			.Produces<ProblemDetails>(StatusCodes.Status200OK)
+			.Produces(StatusCodes.Status200OK)
 			.Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
 			.RequireAuthorization(policyBuilder =>
-				policyBuilder.AddRequirements(new RolesAuthorizationRequirement([
-					"Admin"
-				])));
+				policyBuilder.RequireRole("Admin"));
 
 		return group;
 	}

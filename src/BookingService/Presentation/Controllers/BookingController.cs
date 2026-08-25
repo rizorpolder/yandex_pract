@@ -1,5 +1,6 @@
 using BookingService.Application.Services.Abstraction.Services;
 using BookingService.Domain.Exceptions;
+using Common.Models;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -47,6 +48,7 @@ public class BookingController : ControllerBase
 	[HttpGet("bookings/{bookingId:guid}", Name = nameof(GetBooking))]
 	[ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
+	[Authorize]
 	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
 		var bookingResult = await bookingService.GetBookingByIdAsync(bookingId);
@@ -55,9 +57,11 @@ public class BookingController : ControllerBase
 			return NotFound();
 		
 		var userId = Guid.Parse(User.FindFirst("id")!.Value);
+		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value);
 		
-		if (bookingResult.Value.UserId != userId)
+		if (bookingResult.Value != null && bookingResult.Value.UserId != userId && role != UserRole.Admin)
 			return Forbid();
+		
 		return Ok(bookingResult.Value);
 	}
 
@@ -69,16 +73,12 @@ public class BookingController : ControllerBase
 	public async Task<IActionResult> RemoveBooking(Guid bookingId)
 	{
 		var userId = Guid.Parse(User.FindFirst("id")!.Value);
-		try
-		{
-			var result = await bookingService.CancelBookingAsync(bookingId, userId);
-			if (!result.IsSuccess)
-				return Forbid(result.ErrorMessage);
-			return Ok(result.Value);
-		}
-		catch (PermissionException e)
-		{
-			return Forbid(e.Message);
-		}
+		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value);
+
+		var result = await bookingService.CancelBookingAsync(bookingId, userId, role);
+		if (!result.IsSuccess)
+			return Forbid(result.ErrorMessage);
+
+		return Ok(result.Value);
 	}
 }

@@ -1,7 +1,7 @@
-﻿using Application.Services.EventService.Dto;
-using Domain.Models.Events;
+﻿using EventsService.Application.Services.EventService.Dto;
+using EventsService.Domain.Models.Events;
 
-namespace Application.Services.Filters;
+namespace EventsService.Application.Services.Filters;
 
 public class EventFilterService
 {

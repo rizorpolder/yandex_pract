@@ -1,13 +1,13 @@
 ﻿using System.Text.Json.Serialization;
+using EventsService.Presentation.Controllers.MinimapApiEndpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 
-namespace Presentation;
+namespace EventsService.Presentation;
 
 public static class ServiceCollectionExtensions
 {
@@ -18,17 +18,20 @@ public static class ServiceCollectionExtensions
 			{
 				options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 			});
+		
+		services.AddEndpointsApiExplorer(); // ← критично для Minimal API
 		services.AddSwaggerGen(options =>
 		{
-			options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-			{
-				In = ParameterLocation.Header,
-				Description = "Введите JWT токен",
-				Name = "Authorization",
-				Type = SecuritySchemeType.Http,
-				Scheme = "bearer",
-				BearerFormat = "JWT"
-			});
+			options.AddSecurityDefinition("Bearer",
+				new OpenApiSecurityScheme
+				{
+					In = ParameterLocation.Header,
+					Description = "Введите JWT токен",
+					Name = "Authorization",
+					Type = SecuritySchemeType.Http,
+					Scheme = "bearer",
+					BearerFormat = "JWT"
+				});
 
 			options.AddSecurityRequirement(new OpenApiSecurityRequirement
 			{
@@ -48,7 +51,6 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
-
 	public static IApplicationBuilder UsePresentation(this IApplicationBuilder app)
 	{
 		var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
@@ -56,16 +58,19 @@ public static class ServiceCollectionExtensions
 		if (env.IsDevelopment())
 		{
 			app.UseSwagger();
-			app.UseSwaggerUI();
+			app.UseSwaggerUI(options =>
+			{
+				options.RoutePrefix = string.Empty; // UI теперь на "/"
+				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+			});
 		}
 
 		return app;
 	}
 
-
 	public static IEndpointRouteBuilder MapPresentationEndpoints(this IEndpointRouteBuilder endpoints)
 	{
-		endpoints.MapControllers();
+		endpoints.MapEventsEndpoints();
 		return endpoints;
 	}
 }

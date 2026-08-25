@@ -1,12 +1,14 @@
 using System.Reflection;
-using Domain.Models.Events;
+using EventsService.Domain.Models;
+using EventsService.Domain.Models.Events;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Contexts;
+namespace EventsService.Infrastructure.Contexts;
 
 public class AppDbContext : DbContext
 {
 	public DbSet<Event> Events => Set<Event>();
+	public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
 	public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
 	{

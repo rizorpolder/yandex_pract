@@ -1,6 +1,7 @@
 using System.Text;
 using Application;
 using Application.Services.Abstraction.Services.Auth;
+using Common.Models;
 using Domain.Models.Users;
 using Infrastructure;
 using Infrastructure.Contexts;

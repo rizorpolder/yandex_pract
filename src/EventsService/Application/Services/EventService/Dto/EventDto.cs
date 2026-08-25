@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace Application.Services.EventService.Dto;
+namespace EventsService.Application.Services.EventService.Dto;
 
 [Serializable]
 public class EventDto : IValidatableObject

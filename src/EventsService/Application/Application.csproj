@@ -6,12 +6,13 @@
         <Nullable>enable</Nullable>
         <Configurations>Debug;Release;Configuration</Configurations>
         <Platforms>AnyCPU</Platforms>
-        <RootNamespace>EventsService</RootNamespace>
+        <RootNamespace>EventsService.Application</RootNamespace>
         
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\Shared\Common\Common.csproj"/>
+        <ProjectReference Include="..\..\Shared\Contracts\Contracts.csproj" />
         <ProjectReference Include="..\Domain\Domain.csproj"/>
     </ItemGroup>
 

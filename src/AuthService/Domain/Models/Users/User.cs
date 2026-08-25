@@ -1,4 +1,6 @@
-﻿namespace Domain.Models.Users;
+﻿using Common.Models;
+
+namespace Domain.Models.Users;
 
 public class User
 {

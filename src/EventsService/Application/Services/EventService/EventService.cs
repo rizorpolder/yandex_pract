@@ -1,12 +1,12 @@
-﻿using Application.Services.Abstraction.Repositories;
-using Application.Services.Abstraction.RequestResult;
-using Application.Services.Abstraction.Services;
-using Application.Services.EventService.Dto;
-using Application.Services.Filters;
-using Application.Services.Mapping;
-using Domain.Models.Events;
+﻿using Application.Services.Abstraction.RequestResult;
+using EventsService.Application.Services.Abstraction.Repositories;
+using EventsService.Application.Services.Abstraction.Services;
+using EventsService.Application.Services.EventService.Dto;
+using EventsService.Application.Services.Filters;
+using EventsService.Application.Services.Mapping;
+using EventsService.Domain.Models.Events;
 
-namespace Application.Services.EventService;
+namespace EventsService.Application.Services.EventService;
 
 public class EventService(IEventRepository eventRepository, EventFilterService filterService) : IEventService
 {
@@ -97,5 +97,19 @@ public class EventService(IEventRepository eventRepository, EventFilterService f
 		if (evt == null)
 			return Result<EventDto>.Failure("NotFound");
 		return Result<EventDto>.Success(EventMapper.ToDto(evt));
+	}
+
+	public async Task<Result<bool>> DecreaseAvailableSeatsAsync(Guid eventId, int seatsCount)
+	{
+		var evt = await eventRepository.GetByIdAsync(eventId);
+		if (evt is null)
+			return Result<bool>.Failure("EventNotFound");
+		
+		if(evt.TryReserveSeats(seatsCount))
+			return Result<bool>.Failure("NoAvailableSeats");
+
+		await eventRepository.SaveChangesAsync();
+
+		return Result<bool>.Success(true);
 	}
 }

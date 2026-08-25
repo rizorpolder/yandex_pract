@@ -7,6 +7,8 @@
         <RootNamespace>yandex_pract</RootNamespace>
         <Configurations>Debug;Release;Configuration</Configurations>
         <Platforms>AnyCPU</Platforms>
+        <RootNamespace>EventsService.Web</RootNamespace>
+
     </PropertyGroup>
 
     <ItemGroup>

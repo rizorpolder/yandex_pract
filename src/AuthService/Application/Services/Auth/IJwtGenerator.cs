@@ -1,3 +1,4 @@
+using Common.Models;
 using Domain.Models.Users;
 
 namespace Application.Services.Abstraction.Services.Auth;

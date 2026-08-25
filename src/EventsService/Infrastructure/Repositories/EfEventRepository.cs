@@ -1,9 +1,9 @@
-using Application.Services.Abstraction.Repositories;
-using Domain.Models.Events;
-using Infrastructure.Contexts;
+using EventsService.Application.Services.Abstraction.Repositories;
+using EventsService.Domain.Models.Events;
+using EventsService.Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Repositories;
+namespace EventsService.Infrastructure.Repositories;
 
 public class EfEventRepository(AppDbContext dbContext) : IEventRepository
 {

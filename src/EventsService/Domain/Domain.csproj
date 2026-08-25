@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <Configurations>Debug;Release;Configuration</Configurations>
         <Platforms>AnyCPU</Platforms>
-        <RootNamespace>EventsService</RootNamespace>
+        <RootNamespace>EventsService.Domain</RootNamespace>
         
     </PropertyGroup>
 

@@ -1,7 +1,7 @@
 using Common.Tests.Interfaces;
-using Domain.Models.Events;
-using Infrastructure.Contexts;
-using Infrastructure.Repositories;
+using EventsService.Domain.Models.Events;
+using EventsService.Infrastructure.Contexts;
+using EventsService.Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 
 using Microsoft.EntityFrameworkCore;

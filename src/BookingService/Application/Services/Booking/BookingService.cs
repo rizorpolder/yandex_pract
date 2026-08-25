@@ -7,6 +7,7 @@ using BookingService.Application.Services.Mapping;
 using BookingService.Domain.Exceptions;
 using BookingService.Domain.Models.BookingModel;
 using BookingService.Domain.Models.BookingModel.Options;
+using Common.Models;
 using Contracts.Events;
 using Microsoft.Extensions.Options;
 
@@ -14,7 +15,6 @@ namespace BookingService.Application.Services.Booking;
 
 public class BookingService(
 	IBookingRepository bookingRepository,
-	IBookingRequestPublisher publisher,
 	IOptions<BookingOptions> options)
 	: IBookingService
 {
@@ -22,7 +22,7 @@ public class BookingService(
 	{
 		var booking = await bookingRepository.GetBookingAsync(bookingId);
 		if (booking is null)
-			return; // возможно, стоит залогировать — сообщение пришло на несуществующую бронь
+			return;
 
 		if (success)
 			booking.Confirm();
@@ -41,7 +41,7 @@ public class BookingService(
 		var booking = new BookingModel(eventId, userId);
 		await bookingRepository.AddBookingAsync(booking);
 		await bookingRepository.SaveChangesAsync();
-		await publisher.PublishAsync(new BookingRequested(booking.Id, eventId, DateTime.UtcNow));
+
 		return Result<BookingDto>.Success(BookingMapper.ToDto(booking));
 	}
 
@@ -56,16 +56,36 @@ public class BookingService(
 		return Result<BookingDto>.Success(BookingMapper.ToDto(booking));
 	}
 
-	public async Task<Result<bool>> CancelBookingAsync(Guid bookingId, Guid userId)
+	public async Task<Result<bool>> CancelBookingAsync(Guid bookingId, Guid userId, UserRole role)
 	{
 		var booking = await bookingRepository.GetBookingAsync(bookingId);
 		if (booking is null)
 			return Result<bool>.Failure("NotFound");
 
-		booking.Cancel();
+		if (booking.UserId != userId && role != UserRole.Admin)
+			return Result<bool>.Failure("Forbidden");
 
+		booking.Cancel();
 		await bookingRepository.SaveChangesAsync();
 
 		return Result<bool>.Success(true);
+	}
+
+	public async Task ConfirmBookingAsync(Guid bookingId)
+	{
+		var booking = await bookingRepository.GetBookingAsync(bookingId);
+		if (booking is null) return;
+
+		booking.Confirm();
+		await bookingRepository.SaveChangesAsync();
+	}
+
+	public async Task RejectBookingAsync(Guid bookingId)
+	{
+		var booking = await bookingRepository.GetBookingAsync(bookingId);
+		if (booking is null) return;
+
+		booking.Reject();
+		await bookingRepository.SaveChangesAsync();
 	}
 }

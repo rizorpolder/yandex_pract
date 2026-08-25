@@ -1,13 +1,15 @@
-﻿using Application.Services.Abstraction.Repositories;
-using Infrastructure.Contexts;
+﻿using EventsService.Application.Services.Abstraction.Repositories;
+using EventsService.Infrastructure.Contexts;
+using EventsService.Infrastructure.Messaging;
+using EventsService.Infrastructure.Options;
+using EventsService.Infrastructure.Repositories;
 using Infrastructure.Interceptors;
-using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Infrastructure;
+namespace EventsService.Infrastructure;
 
 public static class ServiceCollectionExtensions
 {
@@ -20,8 +22,12 @@ public static class ServiceCollectionExtensions
 			options.UseNpgsql(connectionString);
 			options.AddInterceptors(new DateTimeInterceptor());
 		});
-
+		
+		services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));
 		services.AddScoped<IEventRepository, EfEventRepository>();
+		services.AddScoped<IProcessedMessageRepository, EfProcessedMessageRepository>();
+		services.AddHostedService<KafkaTopicInitializer>();
+		services.AddHostedService<BookingConfirmedConsumer>();
 
 		return services;
 	}

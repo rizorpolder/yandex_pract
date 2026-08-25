@@ -1,12 +1,12 @@
 using System;
 using System.Text;
-using Application;
-using Infrastructure;
+using EventsService.Application;
+using EventsService.Infrastructure;
+using EventsService.Presentation;
+using EventsService.Presentation.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Presentation;
-using Presentation.Middleware;
 
 public class Program
 {

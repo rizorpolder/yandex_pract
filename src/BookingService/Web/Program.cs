@@ -1,13 +1,41 @@
 using System;
 using System.Text;
+using BookingService.Application;
+using BookingService.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Presentation;
+using Presentation.Middleware;
 
 public class Program
 {
 	public static void Main(string[] args)
 	{
+		var builder = WebApplication.CreateBuilder(args);
+
+		builder.Services.AddPresentation();
+		builder.Services.AddInfrastructure(builder.Configuration);
+		builder.Services.AddApplication();
+
+		AddAuth(builder);
+		builder.Services.AddAuthorization();
+
+		var app = builder.Build();
+
+		app.UseMiddleware<ErrorCustomMiddleware>();
+
+		app.UseHttpsRedirection();
+		app.UseRouting();
+
+		app.UseAuthentication();
+		app.UseAuthorization();
+
+		app.UsePresentation();
+		app.UseInfrastructure();
+
+		app.MapPresentationEndpoints();
+		app.Run();
 	}
 
 	private static void AddAuth(WebApplicationBuilder builder)

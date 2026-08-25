@@ -2,8 +2,9 @@
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Presentation.Middleware;
 
-namespace Presentation.Middleware;
+namespace EventsService.Presentation.Middleware;
 
 public class ErrorCustomMiddleware
 {

@@ -1,10 +1,8 @@
-
-
-using Domain.Models.Events;
+using EventsService.Domain.Models.Events;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Infrastructure.Mapping;
+namespace EventsService.Infrastructure.Mapping;
 
 public class EventConfiguration : IEntityTypeConfiguration<Event>
 {
