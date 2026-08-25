@@ -1,22 +1,31 @@
-﻿using EventsService.Application.Services.Abstraction.Repositories;
+﻿using EventsService.Application.Services.Abstraction.Caching;
+using EventsService.Application.Services.Abstraction.Repositories;
 using EventsService.Application.Services.Abstraction.Services;
 using EventsService.Application.Services.EventService;
 using EventsService.Application.Services.Filters;
+using EventsService.Application.Services.Options;
 using EventsService.Domain.Models.Events;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace UnitTests.Tests.UnitTests;
 
 public class PaginationTests
 {
-	private (Mock<IEventRepository> eventRepo,
-		IEventService eventService) CreateServices()
+	private (Mock<IEventRepository> eventRepo,EventService service) CreateServices(int eventTtl = 300,
+		int topEventsTtl = 300)
 	{
 		var eventRepo = new Mock<IEventRepository>();
+		var cache = new Mock<ICacheService>();
 		var filter = new EventFilterService();
-		var eventService = new EventService(eventRepo.Object, filter);
+		var options = Options.Create(new CacheOptions
+		{
+			EventTtlSeconds = eventTtl,
+			TopEventsTtlSeconds = topEventsTtl
+		});
+		var service = new EventService(eventRepo.Object, filter, cache.Object, options);
 
-		return (eventRepo, eventService);
+		return (eventRepo, service);
 	}
 
 	[Fact]

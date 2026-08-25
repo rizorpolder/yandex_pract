@@ -130,6 +130,10 @@ out/
 .npm
 *.tgz
 
+#dotnet build files
+**/obj/
+**/bin/
+
 # yarn v2
 .yarn/cache
 .yarn/unplugged

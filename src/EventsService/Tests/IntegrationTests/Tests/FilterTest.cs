@@ -1,10 +1,14 @@
 using Common.Tests.Interfaces;
+using EventsService.Application.Services.Abstraction.Caching;
 using EventsService.Application.Services.EventService;
 using EventsService.Application.Services.EventService.Dto;
 using EventsService.Application.Services.Filters;
+using EventsService.Application.Services.Options;
 using EventsService.Infrastructure.Contexts;
 using EventsService.Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace IntegrationTest.Tests;
 
@@ -27,7 +31,16 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(arrange);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
 
 			for (int i = 0; i < 30; i++)
 			{
@@ -42,7 +55,7 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 					TotalSeats = 10
 				};
 
-				var created = await service.CreateEventAsync(dto);
+				var created = await eventService.CreateEventAsync(dto);
 				Assert.True(created.IsSuccess);
 			}
 		}
@@ -51,9 +64,17 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(act);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
 
-			var page = await service.GetEvents("meeting", null, null, 1, 5);
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
+
+			var page = await eventService.GetEvents("meeting", null, null, 1, 5);
 
 			Assert.Equal(5, page.Data.Count);
 			Assert.All(page.Data, e => Assert.Contains("meeting", e.Title, StringComparison.OrdinalIgnoreCase));
@@ -72,7 +93,15 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(arrange);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
 
 			for (int i = 0; i < 30; i++)
 			{
@@ -88,7 +117,7 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 					TotalSeats = 10
 				};
 
-				var created = await service.CreateEventAsync(dto);
+				var created = await eventService.CreateEventAsync(dto);
 				Assert.True(created.IsSuccess);
 			}
 		}
@@ -97,9 +126,17 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(act);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
 
-			var page = await service.GetEvents(null, from, to, 2, 5);
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
+
+			var page = await eventService.GetEvents(null, from, to, 2, 5);
 
 			Assert.Equal(5, page.Data.Count);
 			Assert.All(page.Data,
@@ -123,7 +160,15 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(arrange);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
 
 			for (int i = 0; i < 40; i++)
 			{
@@ -140,7 +185,7 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 					TotalSeats = 10
 				};
 
-				var created = await service.CreateEventAsync(dto);
+				var created = await eventService.CreateEventAsync(dto);
 				Assert.True(created.IsSuccess);
 			}
 		}
@@ -149,9 +194,16 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(act);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
 
-			var page = await service.GetEvents("meeting", from, to, 1, 10);
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
+			var page = await eventService.GetEvents("meeting", from, to, 1, 10);
 
 			Assert.True(page.Data.Count <= 10);
 
@@ -174,7 +226,14 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(arrange);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
 
 			for (int i = 0; i < 10; i++)
 			{
@@ -187,7 +246,7 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 					TotalSeats = 10
 				};
 
-				var created = await service.CreateEventAsync(dto);
+				var created = await eventService.CreateEventAsync(dto);
 				Assert.True(created.IsSuccess);
 			}
 		}
@@ -196,9 +255,16 @@ public sealed class FilterTest : ABaseTestRepository<AppDbContext>, IClassFixtur
 		{
 			var repo = new EfEventRepository(act);
 			var filter = new EventFilterService();
-			var service = new EventService(repo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
 
-			var page = await service.GetEvents(null, null, null, 5, 5);
+			var eventService = new EventService(repo, filter, cache.Object, cacheOptions);
+
+			var page = await eventService.GetEvents(null, null, null, 5, 5);
 
 			Assert.Empty(page.Data);
 		}

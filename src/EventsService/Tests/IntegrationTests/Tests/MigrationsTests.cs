@@ -1,12 +1,16 @@
 using Common.Tests.Interfaces;
+using EventsService.Application.Services.Abstraction.Caching;
 using EventsService.Application.Services.EventService;
 using EventsService.Application.Services.EventService.Dto;
 using EventsService.Application.Services.Filters;
+using EventsService.Application.Services.Options;
 using EventsService.Domain.Models.Events;
 using EventsService.Infrastructure.Contexts;
 using EventsService.Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace IntegrationTest.Tests;
 
@@ -102,7 +106,15 @@ public class MigrationsTests : ABaseTestRepository<AppDbContext>, IClassFixture<
 
 		var eventRepo = new EfEventRepository(ctx);
 		var filter = new EventFilterService();
-		var eventService = new EventService(eventRepo, filter);
+		var cache = new Mock<ICacheService>();
+		var cacheOptions = Options.Create(new CacheOptions
+		{
+			EventTtlSeconds = 300,
+			TopEventsTtlSeconds = 300
+		});
+
+		var eventService = new EventService(eventRepo, filter, cache.Object, cacheOptions);
+
 
 		var dto = new EventDto
 		{
