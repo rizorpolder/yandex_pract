@@ -1,6 +1,17 @@
+using BookingService.Application.Services.BackgroundServices;
+using BookingService.Domain.Models.BookingModel;
+using BookingService.Domain.Models.BookingModel.Options;
+using BookingService.Infrastructure.Contexts;
+using BookingService.Infrastructure.Repositories;
+using Common.Models;
 using Common.Tests.Interfaces;
-using Infrastructure.Contexts;
+using Contracts.Events;
 using IntegrationTest.Tests.Fixture;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace BookingService.IntegrationTests.Tests;
@@ -9,805 +20,229 @@ namespace BookingService.IntegrationTests.Tests;
 public sealed class BookingRepositoryTest : ABaseTestRepository<AppDbContext>, IClassFixture<PostgresContainerFixture>
 {
 	protected override string[] TablesToTruncate =>
-		["bookings", "events", "users"];
+		["bookings"];
 
 	public BookingRepositoryTest(PostgresContainerFixture fixture) : base(fixture, options => new AppDbContext(options))
 	{
 	}
 
-	// private static EventDto ToDto(Event evt) => new EventDto
-	// {
-	// 	Title = evt.Title,
-	// 	Description = evt.Description,
-	// 	StartAt = evt.StartAt,
-	// 	EndAt = evt.EndAt,
-	// 	TotalSeats = evt.TotalSeats
-	// };
-	//
-	// [Fact]
-	// public async Task CreateSingleBooking_ShouldCreateBookingAndDecreaseSeats()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddSeconds(10),
-	// 		DateTime.UtcNow.AddSeconds(20),
-	// 		3);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var bookingResult = await bookingService.CreateBookingAsync(eventId, user.Id);
-	//
-	// 	Assert.True(bookingResult.IsSuccess);
-	// 	Assert.NotNull(bookingResult.Value);
-	// 	Assert.Equal(eventId, bookingResult.Value.EventId);
-	//
-	// 	var updatedEvent = await eventService.GetEventById(eventId);
-	// 	Assert.True(updatedEvent.IsSuccess);
-	// 	Assert.Equal(2, updatedEvent.Value.AvailableSeats);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateSeveralBookings_ShouldCreateUniqueBookings()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddSeconds(10),
-	// 		DateTime.UtcNow.AddSeconds(20),
-	// 		3);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var b1 = await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 	var b2 = await bookingService.CreateBookingAsync(eventId, user.Id);
-	//
-	// 	Assert.True(b1.IsSuccess);
-	// 	Assert.True(b2.IsSuccess);
-	//
-	// 	Assert.NotEqual(b1.Value.Id, b2.Value.Id);
-	// }
-	//
-	// [Fact]
-	// public async Task GetBookingById_ShouldReturnBooking()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddSeconds(10),
-	// 		DateTime.UtcNow.AddSeconds(20),
-	// 		3);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var booking = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
-	// 	Assert.True(booking.IsSuccess);
-	//
-	// 	var loaded = await bookingService.GetBookingByIdAsync(booking.Value.Id);
-	//
-	// 	Assert.True(loaded.IsSuccess);
-	// 	Assert.NotNull(loaded.Value);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_WithWrongEventId_ShouldReturnFalse()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var eventRepo = new EfEventRepository(ctx);
-	//
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var result = await bookingService.CreateBookingAsync(Guid.NewGuid(), Guid.NewGuid());
-	//
-	// 	Assert.False(result.IsSuccess);
-	// 	Assert.Null(result.Value);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_ForRemovedEvent_ShouldFail()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	//
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow,
-	// 		DateTime.UtcNow.AddSeconds(10),
-	// 		3);
-	// 	var userId = Guid.NewGuid();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var removed = await eventService.RemoveEvent(created.Value);
-	// 	Assert.True(removed.IsSuccess);
-	//
-	// 	var result = await bookingService.CreateBookingAsync(eventId, userId);
-	//
-	// 	Assert.False(result.IsSuccess);
-	// 	Assert.Null(result.Value);
-	// }
-	//
-	// [Fact]
-	// public async Task GetBooking_WithBrokenId_ShouldReturnFalse()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var eventRepo = new EfEventRepository(ctx);
-	//
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var result = await bookingService.GetBookingByIdAsync(Guid.NewGuid());
-	//
-	// 	Assert.False(result.IsSuccess);
-	// 	Assert.Null(result.Value);
-	// }
-	//
-	// [Fact]
-	// public async Task BackgroundBookingService_ShouldConfirmPendingBookings()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var services = new ServiceCollection();
-	//
-	// 	services.AddDbContext<AppDbContext>(o => o.UseNpgsql(_fixture.Postgres.GetConnectionString()));
-	// 	services.AddScoped<IEventRepository, EfEventRepository>();
-	// 	services.AddScoped<IBookingRepository, EfBookingRepository>();
-	// 	services.AddScoped<EventFilterService>();
-	// 	services.AddScoped<IEventService, EventService>();
-	// 	services.AddScoped<IBookingService, BookingService>();
-	//
-	// 	services.Configure<BookingOptions>(o => { o.LimitPerUser = 10; });
-	//
-	// 	var provider = services.BuildServiceProvider();
-	//
-	// 	using var setupScope = provider.CreateScope();
-	// 	var eventService = setupScope.ServiceProvider.GetRequiredService<IEventService>();
-	// 	var bookingService = setupScope.ServiceProvider.GetRequiredService<IBookingService>();
-	// 	var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		3);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var booking = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
-	// 	Assert.True(booking.IsSuccess);
-	//
-	// 	var worker = new BackgroundBookingService(scopeFactory);
-	//
-	// 	await worker.StartAsync(CancellationToken.None);
-	//
-	// 	BookingStatus? finalStatus = null;
-	// 	DateTime? processedAt = null;
-	//
-	// 	for (var attempt = 0; attempt < 50; attempt++)
-	// 	{
-	// 		using var pollScope = provider.CreateScope();
-	// 		var pollBookingService = pollScope.ServiceProvider.GetRequiredService<IBookingService>();
-	//
-	// 		var polled = await pollBookingService.GetBookingByIdAsync(booking.Value.Id);
-	// 		Assert.True(polled.IsSuccess);
-	//
-	// 		if (polled.Value.Status != BookingStatus.Pending)
-	// 		{
-	// 			finalStatus = polled.Value.Status;
-	// 			processedAt = polled.Value.ProcessedAt;
-	// 			break;
-	// 		}
-	//
-	// 		await Task.Delay(100);
-	// 	}
-	//
-	// 	await worker.StopAsync(CancellationToken.None);
-	//
-	// 	Assert.Equal(BookingStatus.Confirmed, finalStatus);
-	// 	Assert.NotEqual(default, processedAt);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_ShouldDecreaseAvailableSeats()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		3);
-	// 	var userId = Guid.NewGuid();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var before = created.Value.AvailableSeats;
-	//
-	// 	await bookingService.CreateBookingAsync(eventId, userId);
-	//
-	// 	var updated = await eventService.GetEventById(eventId);
-	//
-	// 	Assert.True(updated.IsSuccess);
-	// 	Assert.Equal(before - 1, updated.Value.AvailableSeats);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateSeveralBookings_UntilLimit_ShouldSucceed()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(10),
-	// 		3);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 	await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 	await bookingService.CreateBookingAsync(eventId, user.Id);
-	//
-	// 	var updated = await eventService.GetEventById(eventId);
-	// 	Assert.True(updated.IsSuccess);
-	// 	Assert.Equal(0, updated.Value.AvailableSeats);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_WhenSeatsExhausted_ShouldThrow()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		1);
-	// 	var userId = Guid.NewGuid();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	await bookingService.CreateBookingAsync(eventId, userId);
-	//
-	// 	await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
-	// 		bookingService.CreateBookingAsync(eventId, userId));
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_ForNonExistingEvent_ShouldReturnFalse()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var eventRepo = new EfEventRepository(ctx);
-	//
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var result = await bookingService.CreateBookingAsync(Guid.NewGuid(), Guid.NewGuid());
-	//
-	// 	Assert.False(result.IsSuccess);
-	// 	Assert.Null(result.Value);
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_WhenZeroSeats_ShouldThrow()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		0);
-	// 	var userId = Guid.NewGuid();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
-	// 		bookingService.CreateBookingAsync(created.Value.ID, userId));
-	// }
-	//
-	// [Fact]
-	// public async Task Booking_Confirm_ShouldSetStatusAndProcessedAt()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		3);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var bookingResult = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
-	// 	Assert.True(bookingResult.IsSuccess);
-	//
-	// 	var booking = await bookingRepo.GetBookingAsync(bookingResult.Value.Id);
-	// 	Assert.NotNull(booking);
-	//
-	// 	booking.Confirm();
-	// 	await bookingRepo.SaveChangesAsync();
-	//
-	// 	Assert.Equal(BookingStatus.Confirmed, booking.Status);
-	// 	Assert.NotEqual(default, booking.ProcessedAt);
-	// }
-	//
-	// [Fact]
-	// public async Task Booking_Reject_ShouldReleaseSeats()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		1);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var bookingResult = await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 	Assert.True(bookingResult.IsSuccess);
-	//
-	// 	var booking = await bookingRepo.GetBookingAsync(bookingResult.Value.Id);
-	// 	Assert.NotNull(booking);
-	// 	booking.Reject();
-	// 	await bookingRepo.SaveChangesAsync();
-	//
-	// 	var storedEvent = await eventRepo.GetByIdAsync(eventId);
-	// 	Assert.NotNull(storedEvent);
-	// 	storedEvent.ReleaseSeats();
-	// 	await eventRepo.SaveChangesAsync();
-	//
-	// 	var after = await eventService.GetEventById(eventId);
-	// 	Assert.True(after.IsSuccess);
-	// 	Assert.Equal(1, after.Value.AvailableSeats);
-	// }
-	//
-	// [Fact]
-	// public async Task Booking_Reject_ThenReleaseSeats_ShouldAllowNewBooking()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		1);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var booking1Result = await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 	Assert.True(booking1Result.IsSuccess);
-	//
-	// 	var booking1 = await bookingRepo.GetBookingAsync(booking1Result.Value.Id);
-	// 	Assert.NotNull(booking1);
-	// 	booking1.Reject();
-	// 	await bookingRepo.SaveChangesAsync();
-	//
-	// 	var storedEvent = await eventRepo.GetByIdAsync(eventId);
-	// 	Assert.NotNull(storedEvent);
-	// 	storedEvent.ReleaseSeats();
-	// 	await eventRepo.SaveChangesAsync();
-	//
-	// 	var result2 = await bookingService.CreateBookingAsync(eventId, user.Id);
-	//
-	// 	Assert.True(result2.IsSuccess);
-	// 	Assert.NotNull(result2.Value);
-	// }
-	//
-	// [Fact]
-	// public async Task ConcurrentBookings_ShouldNotOverbook()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var totalSeats = 5;
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		totalSeats);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var successes = 0;
-	// 	var exceptions = 0;
-	//
-	// 	var tasks = Enumerable.Range(0, 20).Select(async _ =>
-	// 	{
-	// 		try
-	// 		{
-	// 			var result = await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 			if (result.IsSuccess) Interlocked.Increment(ref successes);
-	// 		}
-	// 		catch (NoAvailableSeatsException)
-	// 		{
-	// 			Interlocked.Increment(ref exceptions);
-	// 		}
-	// 	});
-	//
-	// 	await Task.WhenAll(tasks);
-	//
-	// 	Assert.Equal(totalSeats, successes);
-	// 	Assert.Equal(20 - totalSeats, exceptions);
-	// }
-	//
-	// [Fact]
-	// public async Task ConcurrentBookings_ShouldGenerateUniqueIds()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions
-	// 	{
-	// 		LimitPerUser = 10,
-	// 	});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var totalSeats = 10;
-	//
-	// 	var evt = new Event("title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(1),
-	// 		DateTime.UtcNow.AddMinutes(2),
-	// 		totalSeats);
-	//
-	// 	var user = new User("username", "login", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	// 	var eventId = created.Value.ID;
-	//
-	// 	var ids = new ConcurrentBag<Guid>();
-	//
-	// 	var tasks = Enumerable.Range(0, totalSeats).Select(async _ =>
-	// 	{
-	// 		var result = await bookingService.CreateBookingAsync(eventId, user.Id);
-	// 		Assert.True(result.IsSuccess);
-	// 		ids.Add(result.Value!.Id);
-	// 	});
-	//
-	// 	await Task.WhenAll(tasks);
-	//
-	// 	Assert.Equal(totalSeats, ids.Count);
-	// 	Assert.Equal(totalSeats, ids.Distinct().Count());
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_ForPastEvent_ShouldFail()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions {LimitPerUser = 10});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event(
-	// 		"past",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddMinutes(-20),
-	// 		DateTime.UtcNow.AddMinutes(-10),
-	// 		3);
-	//
-	// 	var user = new User("username", "hash", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	await Assert.ThrowsAsync<OutOfDateException>(() =>
-	// 		bookingService.CreateBookingAsync(created.Value.ID, user.Id));
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_WhenUserReachedLimit_ShouldFail()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions {LimitPerUser = 1});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event(
-	// 		"title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddSeconds(10),
-	// 		DateTime.UtcNow.AddSeconds(20),
-	// 		3);
-	//
-	// 	var user = new User("username", "hash", UserRole.User);
-	// 	ctx.Users.Add(user);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var b1 = await bookingService.CreateBookingAsync(created.Value.ID, user.Id);
-	// 	Assert.True(b1.IsSuccess);
-	//
-	// 	await Assert.ThrowsAsync<BookingLimitReachedException>(() =>
-	// 		bookingService.CreateBookingAsync(created.Value.ID, user.Id));
-	// }
-	//
-	// [Fact]
-	// public async Task CreateBooking_LimitIsPerUser_ShouldAllowOtherUser()
-	// {
-	// 	await ResetDatabaseAsync();
-	// 	await using var ctx = CreateContext();
-	//
-	// 	var eventRepo = new EfEventRepository(ctx);
-	// 	var bookingRepo = new EfBookingRepository(ctx);
-	// 	var filter = new EventFilterService();
-	//
-	// 	var eventService = new EventService(eventRepo, filter);
-	// 	var options = Options.Create(new BookingOptions {LimitPerUser = 1});
-	// 	var bookingService = new BookingService(bookingRepo, eventRepo, options);
-	//
-	// 	var evt = new Event(
-	// 		"title",
-	// 		"desc",
-	// 		DateTime.UtcNow.AddSeconds(10),
-	// 		DateTime.UtcNow.AddSeconds(20),
-	// 		3);
-	//
-	// 	var userA = new User("userA", "hash", UserRole.User);
-	// 	var userB = new User("userB", "hash", UserRole.User);
-	//
-	// 	ctx.Users.AddRange(userA, userB);
-	// 	await ctx.SaveChangesAsync();
-	//
-	// 	var created = await eventService.CreateEventAsync(ToDto(evt));
-	// 	Assert.True(created.IsSuccess);
-	//
-	// 	var b1 = await bookingService.CreateBookingAsync(created.Value.ID, userA.Id);
-	// 	Assert.True(b1.IsSuccess);
-	//
-	// 	var b2 = await bookingService.CreateBookingAsync(created.Value.ID, userB.Id);
-	//
-	// 	Assert.True(b2.IsSuccess);
-	// 	Assert.NotNull(b2.Value);
-	// }
+	private static Application.Services.Booking.BookingService CreateService(
+		AppDbContext ctx,
+		int limitPerUser = 10)
+	{
+		var bookingRepo = new EfBookingRepository(ctx);
+		var options = Options.Create(new BookingOptions {LimitPerUser = limitPerUser});
+		return new Application.Services.Booking.BookingService(bookingRepo, options);
+	}
+
+	[Fact]
+	public async Task CreateBooking_ShouldPersistToDatabase()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx);
+
+		var eventId = Guid.NewGuid();
+		var userId = Guid.NewGuid();
+
+		var result = await bookingService.CreateBookingAsync(eventId, userId);
+
+		Assert.True(result.IsSuccess);
+		Assert.NotNull(result.Value);
+
+		await using var verify = CreateContext();
+		var saved = await verify.Bookings.FirstOrDefaultAsync(b => b.Id == result.Value.Id);
+
+		Assert.NotNull(saved);
+		Assert.Equal(eventId, saved.EventId);
+		Assert.Equal(userId, saved.UserId);
+		Assert.Equal(BookingStatus.Pending, saved.Status);
+	}
+
+	[Fact]
+	public async Task CreateSeveralBookings_ShouldCreateUniqueBookings()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx);
+
+		var eventId = Guid.NewGuid();
+		var user1 = Guid.NewGuid();
+		var user2 = Guid.NewGuid();
+
+		var b1 = await bookingService.CreateBookingAsync(eventId, user1);
+		var b2 = await bookingService.CreateBookingAsync(eventId, user2);
+
+		Assert.True(b1.IsSuccess);
+		Assert.True(b2.IsSuccess);
+		Assert.NotEqual(b1.Value!.Id, b2.Value!.Id);
+	}
+
+	[Fact]
+	public async Task GetBookingById_ShouldReturnBooking()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx);
+
+		var created = await bookingService.CreateBookingAsync(Guid.NewGuid(), Guid.NewGuid());
+		Assert.True(created.IsSuccess);
+
+		var loaded = await bookingService.GetBookingByIdAsync(created.Value!.Id);
+
+		Assert.True(loaded.IsSuccess);
+		Assert.NotNull(loaded.Value);
+		Assert.Equal(created.Value.Id, loaded.Value.Id);
+	}
+
+	[Fact]
+	public async Task GetBooking_WithBrokenId_ShouldReturnFailure()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx);
+
+		var result = await bookingService.GetBookingByIdAsync(Guid.NewGuid());
+
+		Assert.False(result.IsSuccess);
+		Assert.Null(result.Value);
+	}
+
+	[Fact]
+	public async Task CreateBooking_WhenUserReachedLimit_ShouldThrow()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx, limitPerUser: 1);
+
+		var userId = Guid.NewGuid();
+
+		var b1 = await bookingService.CreateBookingAsync(Guid.NewGuid(), userId);
+		Assert.True(b1.IsSuccess);
+
+		await Assert.ThrowsAsync<BookingService.Domain.Exceptions.BookingLimitReachedException>(() =>
+			bookingService.CreateBookingAsync(Guid.NewGuid(), userId));
+	}
+
+	[Fact]
+	public async Task CreateBooking_LimitIsPerUser_ShouldAllowOtherUser()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx, limitPerUser: 1);
+
+		var eventId = Guid.NewGuid();
+		var userA = Guid.NewGuid();
+		var userB = Guid.NewGuid();
+
+		var b1 = await bookingService.CreateBookingAsync(eventId, userA);
+		Assert.True(b1.IsSuccess);
+
+		var b2 = await bookingService.CreateBookingAsync(eventId, userB);
+
+		Assert.True(b2.IsSuccess);
+	}
+
+	[Fact]
+	public async Task CancelBooking_ShouldPersistCancelledStatus()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx);
+
+		var userId = Guid.NewGuid();
+		var created = await bookingService.CreateBookingAsync(Guid.NewGuid(), userId);
+		Assert.True(created.IsSuccess);
+
+		var cancelled = await bookingService.CancelBookingAsync(created.Value!.Id, userId, UserRole.User);
+		Assert.True(cancelled.IsSuccess);
+
+		await using var verify = CreateContext();
+		var saved = await verify.Bookings.FirstAsync(b => b.Id == created.Value.Id);
+		Assert.Equal(BookingStatus.Cancelled, saved.Status);
+	}
+
+	[Fact]
+	public async Task CancelBooking_ByNonOwner_ShouldFail()
+	{
+		await ResetDatabaseAsync();
+		await using var ctx = CreateContext();
+
+		var bookingService = CreateService(ctx);
+
+		var ownerId = Guid.NewGuid();
+		var otherId = Guid.NewGuid();
+
+		var created = await bookingService.CreateBookingAsync(Guid.NewGuid(), ownerId);
+		Assert.True(created.IsSuccess);
+
+		var result = await bookingService.CancelBookingAsync(created.Value!.Id, otherId, UserRole.User);
+
+		Assert.False(result.IsSuccess);
+
+		await using var verify = CreateContext();
+		var saved = await verify.Bookings.FirstAsync(b => b.Id == created.Value.Id);
+		Assert.Equal(BookingStatus.Pending, saved.Status);
+	}
+
+	[Fact]
+	public async Task BackgroundBookingService_ShouldConfirmPendingBookings_AndPublishEvent()
+	{
+		await ResetDatabaseAsync();
+
+		var services = new ServiceCollection();
+		services.AddDbContext<AppDbContext>(o => o.UseNpgsql(_fixture.Postgres.GetConnectionString()));
+		services.AddScoped<Application.Services.Abstraction.Repositories.IBookingRepository, EfBookingRepository>();
+
+		var published = new TaskCompletionSource();
+
+		var publisherMock = new Mock<Application.Services.Abstraction.Broker.IBookingConfirmedPublisher>();
+		publisherMock
+			.Setup(p => p.PublishAsync(It.IsAny<BookingConfirmed>(), It.IsAny<CancellationToken>()))
+			.Callback(() => published.TrySetResult())
+			.Returns(Task.CompletedTask);
+
+		services.AddSingleton(publisherMock.Object);
+
+		services.Configure<BookingOptions>(o => o.LimitPerUser = 10);
+
+		var provider = services.BuildServiceProvider();
+
+		Guid bookingId;
+		await using (var setupCtx = CreateContext())
+		{
+			var repo = new EfBookingRepository(setupCtx);
+			var options = Options.Create(new BookingOptions {LimitPerUser = 10});
+			var bookingService = new Application.Services.Booking.BookingService(repo, options);
+
+			var created = await bookingService.CreateBookingAsync(Guid.NewGuid(), Guid.NewGuid());
+			Assert.True(created.IsSuccess);
+			bookingId = created.Value!.Id;
+		}
+
+		var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+		var worker = new BackgroundBookingService(
+			scopeFactory,
+			NullLogger<BackgroundBookingService>.Instance);
+
+		using var cts = new CancellationTokenSource();
+		var workerTask = worker.StartAsync(cts.Token);
+
+		await published.Task;
+		await cts.CancelAsync();
+		await workerTask;
+
+		await using var verify = CreateContext();
+		var saved = await verify.Bookings.FirstAsync(b => b.Id == bookingId);
+
+		Assert.Equal(BookingStatus.Confirmed, saved.Status);
+		Assert.NotEqual(default, saved.ProcessedAt);
+	}
 }
