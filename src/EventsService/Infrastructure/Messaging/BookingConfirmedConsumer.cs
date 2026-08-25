@@ -17,7 +17,12 @@ public class BookingConfirmedConsumer(
 	IOptions<KafkaOptions> kafkaOptions,
 	ILogger<BookingConfirmedConsumer> logger) : BackgroundService
 {
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+	protected override Task ExecuteAsync(CancellationToken stoppingToken)
+	{
+		return Task.Run(() => RunConsumeLoop(stoppingToken), stoppingToken);
+	}
+
+	private async Task RunConsumeLoop(CancellationToken stoppingToken)
 	{
 		using var consumer = BuildConsumer();
 		consumer.Subscribe(KafkaTopics.BookingConfirmed);

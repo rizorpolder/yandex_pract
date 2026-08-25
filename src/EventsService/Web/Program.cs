@@ -33,8 +33,8 @@ public class Program
 
 		app.UsePresentation();
 		app.UseInfrastructure();
-
-		app.MapPresentationEndpoints();
+		
+		app.MapEndpoints();
 		app.Run();
 	}
 

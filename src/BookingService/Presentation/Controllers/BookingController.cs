@@ -32,7 +32,7 @@ public class BookingController : ControllerBase
 			var bookingResult = await bookingService.CreateBookingAsync(eventId, userId);
 
 			if (!bookingResult.IsSuccess)
-				return NotFound(new { Message = bookingResult.ErrorMessage });
+				return NotFound(new {Message = bookingResult.ErrorMessage});
 
 			var location = $"/events/bookings/{bookingResult.Value.Id}";
 			Response.Headers.Append("Location", location);
@@ -52,16 +52,16 @@ public class BookingController : ControllerBase
 	public async Task<IActionResult> GetBooking(Guid bookingId)
 	{
 		var bookingResult = await bookingService.GetBookingByIdAsync(bookingId);
-		
+
 		if (!bookingResult.IsSuccess)
 			return NotFound();
-		
+
 		var userId = Guid.Parse(User.FindFirst("id")!.Value);
 		var role = Enum.Parse<UserRole>(User.FindFirst("role")!.Value);
-		
+
 		if (bookingResult.Value != null && bookingResult.Value.UserId != userId && role != UserRole.Admin)
 			return Forbid();
-		
+
 		return Ok(bookingResult.Value);
 	}
 
@@ -77,7 +77,12 @@ public class BookingController : ControllerBase
 
 		var result = await bookingService.CancelBookingAsync(bookingId, userId, role);
 		if (!result.IsSuccess)
-			return Forbid(result.ErrorMessage);
+			return result.ErrorMessage switch
+			{
+				"NotFound" => NotFound(),
+				"Forbidden" => Forbid(),
+				_ => BadRequest(new {Message = result.ErrorMessage})
+			};
 
 		return Ok(result.Value);
 	}

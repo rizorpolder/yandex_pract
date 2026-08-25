@@ -68,7 +68,7 @@ public static class ServiceCollectionExtensions
 		return app;
 	}
 
-	public static IEndpointRouteBuilder MapPresentationEndpoints(this IEndpointRouteBuilder endpoints)
+	public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder endpoints)
 	{
 		endpoints.MapEventsEndpoints();
 		return endpoints;
