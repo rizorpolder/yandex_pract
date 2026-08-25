@@ -1,577 +1,361 @@
-# CRUD API сервис для управления событиями (Events)
+# Booking Platform — микросервисная система бронирования событий
 
 ## Оглавление
 
-- [Архитектура проекта](#архитектура-проекта)
+- [Архитектура системы](#архитектура-системы)
+- [Состав репозитория](#состав-репозитория)
 - [Требования](#требования)
-- [Установка](#установка)
-- [Настройка подключения к БД](#настройка-подключения-к-бд)
-- [Аутентификация и авторизация](#аутентификация-и-авторизация-jwt)
-- [Фильтрация](#фильтрация)
-- [Бронирование событий](#Бронированиесобытий)
-- [Примитивы синхронизации](#примитивы-синхронизации-использованные-в-проекте)
+- [Запуск через Docker Compose](#запуск-через-docker-compose)
+- [Переменные окружения](#переменные-окружения)
+- [Аутентификация и авторизация (JWT)](#аутентификация-и-авторизация-jwt)
+- [Events Service](#events-service)
+- [Booking Service](#booking-service)
+- [Auth Service](#auth-service)
+- [Взаимодействие сервисов через Kafka](#взаимодействие-сервисов-через-kafka)
+- [Идемпотентность обработки сообщений](#идемпотентность-обработки-сообщений)
+- [Миграции базы данных](#миграции-базы-данных)
 - [Тестирование](#тестирование)
-- [Ошибки](#ошибки)
+- [Формат ошибок](#формат-ошибок)
 
-## Архитектура проекта
+## Архитектура системы
 
-Проект построен по принципам слоистой (Clean/Onion) архитектуры и разделён на пять проектов/слоёв. Ключевое
-правило — зависимости идут только "внутрь", к домену: `Domain` ни от кого не зависит, `Application` зависит
-только от `Domain`, `Infrastructure` реализует интерфейсы `Application`, `Presentation` связывает
-`Infrastructure`+`Application` через DI и содержит контроллеры/middleware, а `Web` — тонкий исполняемый хост
-(`Program.cs`), который лишь подключает `Presentation`.
+Проект изначально был единым монолитным приложением и был разделён на три независимых микросервиса,
+взаимодействующих между собой асинхронно через Kafka:
+
+- **AuthService** — регистрация, аутентификация и выдача JWT-токенов.
+- **EventsService** — управление событиями (CRUD), фильтрация, пагинация, учёт свободных мест.
+- **BookingService** — создание и отмена бронирований, лимит бронирований на пользователя.
+
+Сервисы не обращаются друг к другу по HTTP и не имеют доступа к чужим базам данных — у каждого своя
+изолированная база PostgreSQL. Единственный канал связи между `BookingService` и `EventsService` —
+Kafka-топик `booking-confirmed`.
 
 ```
-Web (host, Program.cs)
-        │
-        ▼
-Presentation
-        │
-        ▼
-Infrastructure ──► Application ──► Domain
+                    JWT (общий секрет)
+        ┌──────────────┬──────────────┬──────────────┐
+        │              │              │              │
+   AuthService     EventsService  BookingService
+   (auth-db)       (events-db)    (booking-db)
+                        ▲              │
+                        │  booking-confirmed (Kafka)
+                        └──────────────┘
 ```
 
-### Domain
+- `AuthService` выдаёт JWT-токен при логине. `EventsService` и `BookingService` самостоятельно
+  валидируют токен по общему секрету — без обращения к `AuthService` по сети.
+- `BookingService` создаёт бронирование со статусом `Pending`. Фоновый обработчик подтверждает
+  зависшие брони и публикует событие `BookingConfirmed` в Kafka.
+- `EventsService` подписан на `booking-confirmed`, при получении события уменьшает количество
+  свободных мест у соответствующего события.
 
-Ядро приложения: доменные сущности и бизнес-правила, не зависящие ни от EF Core, ни от ASP.NET, ни от какого-либо
-внешнего слоя.
+## Состав репозитория
 
-- `Domain.Models.Event.Event` — сущность события: инкапсулирует `Title`, `Description`, `StartAt`/`EndAt`,
-  `TotalSeats`/`AvailableSeats`; резервирование и освобождение мест (`TryReserveSeats`, `ReleaseSeats`) и
-  обновление полей (`UpdateEvent`) — это методы самой сущности, а не сервисов, чтобы бизнес-правила не
-  "утекали" наружу.
-- `Domain.Models.Booking.Booking` — сущность бронирования: `Id`, `EventId`, `Status`, `CreatedAt`, `ProcessedAt`,
-  переходы состояния через `Confirm()`/`Reject()`.
-- `Domain.Exceptions` — доменные исключения, например `NoAvailableSeatsException`, которое выбрасывается при
-  попытке забронировать место в событии без свободных мест.
+Монорепозиторий с solution-файлом `yandex_pract.sln`, сгруппированным по сервисам через
+Solution Folders.
 
-### Application
-
-Слой сценариев использования (use cases) и бизнес-логики поверх домена. Не знает про EF Core или конкретную
-БД — работает только через абстракции репозиториев.
-
-- `Application.Services.Abstraction.Repositories` — интерфейсы `IEventRepository`, `IBookingRepository`,
-  описывающие контракт хранилища (CRUD-операции над `Event`/`Booking`), которые реализует уже `Infrastructure`.
-- `Application.Services.Abstraction.Services` — интерфейсы `IEventService`, `IBookingService`.
-- `Application.Services.Abstraction.RequestResult` — обёртка `Result<T>` (`IsSuccess`/`Value`/`ErrorMessage`)
-  для единообразной передачи результата операций без исключений в качестве управления потоком.
-- `Application.Services.BookingService` — реализация `IBookingService`: создание бронирования с проверкой мест
-  (`TryReserveSeats`) и защитой от гонок через `SemaphoreSlim`, получение бронирования по id.
-- `Application.Services.BackgroundBookingService` — фоновый `BackgroundService`, асинхронно подтверждающий
-  `Pending`-бронирования (`Confirm`) либо отклоняющий их с возвратом мест (`Reject` + `ReleaseSeats`) при сбое
-  или отмене.
-- `Application.Services.Mapping` — внутренние (`internal`) мапперы `EventMapper`/`BookingMapper` между доменными
-  сущностями и DTO уровня Application/Presentation.
-- Сервис `EventService` (реализация `IEventService`) и связанные с ним `EventDto`, `EventFilterService` — по
-  историческим причинам всё ещё живут в неймспейсе `yandex_pract.*` (это исходный неймспейс проекта до
-  разделения на слои), хотя по назначению они относятся именно к слою Application. Это единственное заметное
-  расхождение между физическим неймспейсом и логическим слоем — стоит иметь в виду при дальнейшем рефакторинге.
-
-### Infrastructure
-
-Реализация абстракций `Application` поверх конкретной технологии хранения — EF Core + PostgreSQL.
-
-- `Infrastructure.Repositories.EfEventRepository` / `EfBookingRepository` — реализации `IEventRepository` /
-  `IBookingRepository` через `AppDbContext`.
-- `yandex_pract.DbContext.AppDbContext` — EF Core `DbContext` с наборами `Events`/`Bookings`.
-- `yandex_pract.Interceptors.DateTimeInterceptor` — перехватчик EF Core для нормализации `DateTime`-полей
-  (например, приведение к UTC) при сохранении.
-- Миграции EF Core, описывающие схему БД (таблицы `events`/`bookings`, CHECK-ограничения на количество мест и
-  временной диапазон, внешние ключи, индексы — подробнее в разделе "Тестирование" → `MigrationsTests`).
-- `Infrastructure.Services.Auth.JwtGenerator` / `JwtOptions` — генерация JWT-токенов и настройки JWT
-  (см. раздел "Аутентификация и авторизация" ниже).
-
-### Presentation
-
-Класс-библиотека со всем, что относится к HTTP-слою: контроллеры, middleware, конфигурация DI и Swagger.
-
-- `Presentation.ServiceCollectionExtensions.AddPresentation(configuration)` — регистрирует контроллеры,
-  Swagger, и вызывает `AddInfrastructure(configuration)` + `AddApplication()`, то есть именно здесь
-  собираются воедино все нижележащие слои.
-- `Presentation.ServiceCollectionExtensions.UsePresentation()` — настраивает middleware-пайплайн: применяет
-  миграции БД через `UseInfrastructure()`, подключает кастомный `MyCustomMiddleware`, Swagger UI (только в
-  Development), `UseHttpsRedirection`, `UseRouting`.
-- `Presentation.ServiceCollectionExtensions.MapPresentationEndpoints()` — регистрирует маршруты контроллеров
-  (`MapControllers()`).
-- `Presentation.Middleware` — кастомные middleware (например, глобальная обработка ошибок, см. раздел
-  "Ошибки" ниже).
-
-Сам `Presentation` не содержит `Program.cs` и не запускается напрямую — это переиспользуемая библиотека,
-которую подключает исполняемый хост.
-
-### Web
-
-Тонкий исполняемый проект (`src/Web/Web.csproj`) — единственная точка входа приложения. Содержит только
-`Program.cs`:
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddPresentation(builder.Configuration);
-
-var app = builder.Build();
-app.UsePresentation();
-app.MapPresentationEndpoints();
-app.Run();
+```
+src/
+  Shared/
+    Contracts/        — DTO Kafka-сообщений и константы имён топиков, используются
+                         EventsService и BookingService
+    Common/            — переиспользуемые типы без привязки к конкретному сервису:
+                         Result<T>, UserRole
+  AuthService/
+    Domain/            — доменные модели (User, UserRole)
+    Application/       — сценарии использования, генерация JWT
+    Infrastructure/    — EF Core, PostgreSQL, JwtGenerator
+    Presentation/      — HTTP-эндпоинты (Minimal API)
+    Web/               — точка входа, Program.cs, Dockerfile
+    Tests/             — юнит- и интеграционные тесты
+  EventsService/
+    Domain/            — доменная модель Event
+    Application/       — CRUD, фильтрация, пагинация, уменьшение свободных мест
+    Infrastructure/    — EF Core, Kafka-consumer (BookingConfirmedConsumer),
+                         инициализация Kafka-топика, таблица processed_messages
+    Presentation/       — HTTP-эндпоинты (Minimal API)
+    Web/               — точка входа, Program.cs, Dockerfile
+    Tests/             — юнит- и интеграционные тесты
+  BookingService/
+    Domain/            — доменная модель Booking
+    Application/       — создание/отмена бронирования, лимит на пользователя
+    Infrastructure/    — EF Core, Kafka-producer (KafkaBookingConfirmedPublisher),
+                         фоновый обработчик подтверждения броней
+    Presentation/      — HTTP-контроллеры
+    Web/               — точка входа, Program.cs, Dockerfile
+    Tests/             — юнит- и интеграционные тесты
+docker-compose.yml
+.env / .env.example
 ```
 
-Сам `Web` не содержит бизнес-логики, контроллеров или конфигурации DI — вся эта работа делегирована в
-`Presentation` (см. выше). Разделение `Web`/`Presentation` позволяет, например, переиспользовать
-`Presentation` в другом хосте (тестовом `WebApplicationFactory`, воркере и т.п.) без необходимости
-дублировать настройку DI.
+Внутри каждого сервиса действует то же правило слоистой архитектуры, что было в исходном
+монолите: `Domain` ни от кого не зависит, `Application` зависит только от `Domain` (и от
+`Shared/Common`), `Infrastructure` реализует интерфейсы `Application` (и зависит от
+`Shared/Contracts` там, где есть обмен сообщениями через Kafka), `Presentation` связывает
+`Infrastructure` + `Application` через DI, `Web` — тонкий исполняемый хост.
+
+Сервисы физически не ссылаются на код друг друга — никаких `ProjectReference` между
+`AuthService`, `EventsService` и `BookingService` нет. Общими являются только `Shared/Contracts`
+и `Shared/Common`.
 
 ## Требования
 
 - .NET SDK 9.0
-- PostgreSQL 13+ (используется как основное хранилище данных приложения через провайдер Npgsql)
-- Docker (для интеграционных тестов)
+- Docker и Docker Compose (основной способ запуска)
+- Для локальной разработки без Docker дополнительно потребуются: PostgreSQL 16 (три отдельных
+  базы или три инстанса) и Apache Kafka
 
-## Установка
+## Запуск через Docker Compose
 
-* Скачать проект из репозитория
-* Запустить коммандную строку
-* Выполнить команду cd \d путь к проекту
-* Выполнить команду dotnet build
-* Выполнить команду dotnet run (для запуска основного проекта
+Запуск всей системы выполняется одной командой из корня репозитория, рядом с
+`docker-compose.yml`.
 
-<code>dotnet run --project src/Web/Web.csproj</code>)
+1. Скопируйте `.env.example` в `.env` и подставьте свои значения:
 
-* перейти по ulr: http://localhost:5000/swagger/index.html
+       cp .env.example .env
 
-## Настройка подключения к БД
+2. Запустите сборку и старт всех сервисов:
 
-Приложению для работы требуется запущенный сервер PostgreSQL. Перед первым запуском:
+       docker compose up --build
 
-1. Убедитесь, что PostgreSQL установлен и запущен (локально либо в Docker):
+3. При первом запуске после изменения схемы базы данных или обновления инфраструктуры полезно
+   снести старые volume-ы:
 
-   <code>docker run --name pg-events -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -p 5432:5432 -d postgres:
-   16</code>
+       docker compose down -v
+       docker compose up --build
 
-2. Укажите строку подключения в `appsettings.json` (или `appsettings.Development.json`) в секции `ConnectionStrings`:
+4. После запуска доступны:
 
-       {
-         "ConnectionStrings": {
-           "DefaultConnection": "Host=127.0.0.1;Port=5432;Database=events_db;Username=postgres;Password=postgres"
-         }
-       }
+   - AuthService — `http://localhost:5001/swagger`
+   - EventsService — `http://localhost:5002/swagger`
+   - BookingService — `http://localhost:5003/swagger`
+   - Kafka broker — `localhost:9092`
 
-3. При необходимости строку подключения можно переопределить через переменную окружения или `dotnet user-secrets`, не
-   храня пароль в репозитории:
+Запуск только части системы (например, для проверки одного сервиса):
 
-       dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=127.0.0.1;Port=5432;Database=events_db;Username=postgres;Password=postgres" --project src/Web/Web.csproj
+    docker compose up --build auth-service auth-db
 
-Управление схемой БД (EF Core Migrations)
-Схема базы данных управляется миграциями EF Core.
-При изменении моделей необходимо создавать новую миграцию и применять её к базе данных.
+Остановка и удаление контейнеров:
 
-`AppDbContext` живёт в проекте `Infrastructure`, а запускаемый (startup) проект — `Web`. Поэтому команды `dotnet
-ef` теперь принимают два флага: `--project` (где искать/создавать миграции) и `--startup-project` (откуда брать
-конфигурацию и DI для применения миграций).
+    docker compose down
 
-> Путь к `Infrastructure.csproj` ниже дан по аналогии с `src/Web/Web.csproj` (соседняя папка в `src/`) — если у
-> вас он лежит иначе, поправьте путь под свою структуру.
+## Переменные окружения
 
-Создание миграции
+Все настройки передаются через `.env` в корне репозитория (файл не хранится в репозитории,
+только пример `.env.example`).
 
-    dotnet ef migrations add InitialMigration --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
+    JWT_SECRET=<длинный случайный секрет, одинаковый для всех трёх сервисов>
+    JWT_ISSUER=<издатель токена>
+    JWT_AUDIENCE=<аудитория токена>
+    JWT_LIFETIME_MINUTES=60
+    BOOKING_USER_LIMIT=10
+    AUTH_DB_PASSWORD=<пароль базы AuthService>
+    EVENTS_DB_PASSWORD=<пароль базы EventsService>
+    BOOKING_DB_PASSWORD=<пароль базы BookingService>
 
-Применение миграций
+`docker-compose.yml` подставляет эти значения в переменные окружения контейнеров
+(`Jwt__Secret`, `ConnectionStrings__DefaultConnection` и т.п.) — двойное подчёркивание в имени
+переменной соответствует вложенности `:` в стандартной конфигурации .NET.
 
-    dotnet ef database update --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
-
-Откат миграции
-
-     dotnet ef database update PreviousMigrationName --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
-
-Удаление последней миграции
-
-    dotnet ef migrations remove --project src/Infrastructure/Infrastructure.csproj --startup-project src/Web/Web.csproj
-
-<b>Важно</b>  
-В приложении используется Database.MigrateAsync(), а не EnsureCreated().
-EnsureCreated() не подходит для продакшена и интеграционных тестов — он не создаёт CHECK‑ограничения, индексы и внешние
-ключи.
+Секрет `JWT_SECRET`, издатель и аудитория должны быть одинаковыми во всех трёх сервисах — иначе
+токен, выданный `AuthService`, не пройдёт валидацию в `EventsService`/`BookingService`.
 
 ## Аутентификация и авторизация (JWT)
 
-Доступ к части эндпоинтов защищён JWT-аутентификацией (Bearer-токен) и ролевой авторизацией через
-`[Authorize(Roles = ...)]`.
+Токен выдаёт только `AuthService`. `EventsService` и `BookingService` самостоятельно проверяют
+подпись и срок действия токена по общему секрету, без обращения к `AuthService` по сети.
 
 ### Ролевая модель
 
-В системе есть две роли (`Domain.Models.Users.UserRole`): `User` и `Admin`. При регистрации пользователю по
-умолчанию присваивается роль `User`.
+Две роли (`Common.UserRole`): `User` и `Admin`. При регистрации через `/auth/register`
+пользователю присваивается роль `User`. Роль `Admin` выдаётся через отдельный защищённый
+эндпоинт `/auth/admin/create`, доступный только пользователю с ролью `Admin`.
 
-| Действие                                                                    |  Аноним  |     User      | Admin  |
-|-----------------------------------------------------------------------------|:--------:|:-------------:|:------:|
-| Регистрация / логин (`/auth/register`, `/auth/login`)                       |    +     |       +       |   +    |
-| Просмотр списка событий и события по id (`GET /events`, `GET /events/{id}`) |    +     |       +       |   +    |
-| Создание события (`POST /events`)                                           |    -     |       -       |   +    |
-| Изменение события (`PUT /events/{id}`)                                      |    -     |       -       |   +    |
-| Удаление события (`DELETE /events/{id}`)                                    |    -     |       -       |   +    |
-| Удаление бронирования события                        |    -     | только своего | любого |
+| Действие                                             | Аноним | User          | Admin  |
+|-------------------------------------------------------|:------:|:-------------:|:------:|
+| Регистрация / логин (`AuthService`)                    |   +    |       +       |   +    |
+| Просмотр событий (`GET /events`, `GET /events/{id}`)    |   +    |       +       |   +    |
+| Создание / изменение / удаление события                 |   -    |       -       |   +    |
+| Создание бронирования                                    |   -    |       +       |   +    |
+| Просмотр / отмена своего бронирования                    |   -    |       +       |   +    |
+| Отмена чужого бронирования                                |   -    |       -       |   +    |
 
- Бронирование события - пользователь может удалять только свои бронирования, админ - любые
-> Роли на управление событиями (Create/Update/Delete) указаны по образцу подтверждённого в коде
-> `[Authorize(Roles = nameof(UserRole.Admin))]` на `CreateNewEvent` — если на `UpdateEventById`/`DeleteEventById`
-> стоит другая роль, поправьте таблицу. Для `AddBooking` предполагается, что бронировать может любой
-> авторизованный пользователь (`User` или `Admin`), а не только админ — тоже стоит свериться с атрибутом на
-> контроллере. У `GetBooking`/`RemoveBooking` на текущий момент `[Authorize]` в коде не обнаружено — если это
-> не осознанное решение (например, публичный доступ по знанию id брони), стоит добавить туда авторизацию.
+### Получение токена и работа через Swagger
 
-Как в проекте выдаётся роль `Admin` (сидируется отдельный аккаунт в миграции/seed-данных, назначается вручную
-через БД, либо есть отдельный механизм) — впишите сюда после уточнения.
+Поскольку сервисы работают на разных портах, у каждого свой Swagger UI со своей кнопкой
+Authorize. Токен, полученный на одной вкладке, не переносится автоматически на другую — его
+нужно скопировать вручную.
 
-### Получение JWT-токена через Swagger
+1. Откройте `http://localhost:5001/swagger`, выполните `POST /auth/register`, затем
+   `POST /auth/login` — в ответе придёт JWT-строка.
+2. Откройте `http://localhost:5002/swagger` и/или `http://localhost:5003/swagger`, нажмите
+   Authorize, вставьте токен в формате `Bearer <токен>`, нажмите Authorize и Close.
+3. После этого запросы к защищённым эндпоинтам на этой вкладке будут автоматически включать
+   заголовок `Authorization`.
 
-1. Откройте Swagger UI: `http://localhost:5000/swagger/index.html`.
-2. Зарегистрируйте пользователя — выполните `POST /auth/register` (Try it out → заполните тело запроса
-   логином/паролем → Execute).
-3. Получите токен — выполните `POST /auth/login` с теми же учётными данными. В ответе придёт JWT-строка.
-4. Нажмите кнопку **Authorize** в правом верхнем углу Swagger UI (иконка замка).
-5. Вставьте полученный токен **без** префикса `Bearer` — схема настроена как `bearer`, и Swagger добавит
-   префикс автоматически, — нажмите Authorize, затем Close.
-6. После этого у всех защищённых эндпоинтов (с иконкой замка) заголовок `Authorization: Bearer <токен>` будет
-   автоматически подставляться при выполнении запросов через Try it out.
+В реальном клиентском приложении (не Swagger) эта подстановка заголовка выполняется
+автоматически HTTP-клиентом фронтенда для каждого запроса, без участия пользователя.
 
-Токен действителен `LifeTime` минут (см. настройку ниже, по умолчанию — 60 минут). По истечении этого времени
-нужно заново выполнить `POST /auth/login` и обновить токен в окне Authorize.
+## Events Service
 
-### Настройка секрета JWT
+Отвечает за CRUD событий, фильтрацию, пагинацию и учёт свободных мест.
 
-Параметры JWT читаются из секции `Jwt` конфигурации (`Infrastructure.Services.Auth.JwtOptions`):
+### Эндпоинты
 
-```json
-{
-  "Jwt": {
-    "Secret": "замените-на-длинный-случайный-секрет-минимум-32-байта",
-    "Issuer": "events-api",
-    "Audience": "events-api-client",
-    "LifeTime": 60
-  }
-}
-```
+    GET    /events                 — список событий с фильтрацией и пагинацией
+    GET    /events/{id}            — событие по идентификатору
+    POST   /events                 — создание события (требует роль Admin)
+    PUT    /events/{id}            — изменение события (требует роль Admin)
+    DELETE /events/{id}            — удаление события (требует роль Admin)
 
-- `Secret` — симметричный ключ, которым подписываются и валидируются токены (`HmacSha256`). Чем длиннее и
-  случайнее, тем лучше; для HMAC-SHA256 рекомендуется не короче 32 байт (256 бит).
-- `Issuer` / `Audience` — должны совпадать с тем, что используется при генерации токена в `JwtGenerator` и при
-  валидации в `TokenValidationParameters`.
-- `LifeTime` — время жизни токена в минутах.
-
-<b>Важно про продакшн</b>  
-Значение `Secret` в примере выше — это placeholder, использовать его в реальном окружении нельзя.
-Рекомендации:
-
-- никогда не хранить реальный секрет в `appsettings.json` или в репозитории;
-- локально задавать его через `dotnet user-secrets` (аналогично строке подключения к БД выше):
-
-      dotnet user-secrets set "Jwt:Secret" "<длинный-случайный-секрет>" --project src/Web/Web.csproj
-
-- в продакшене — через переменные окружения (`Jwt__Secret`) или менеджер секретов (Azure Key Vault, AWS
-  Secrets Manager, HashiCorp Vault, Docker/Kubernetes secrets и т.п.), а не через конфигурационные файлы,
-  попадающие в систему контроля версий;
-- сгенерировать случайный секрет можно, например, командой:
-
-      openssl rand -base64 32
-
-- при компрометации или плановой ротации секрета все ранее выданные токены становятся невалидными — это стоит
-  учитывать при смене ключа в проде (пользователям потребуется залогиниться заново).
-
-## Фильтрация
-
-Этот раздел описывает работу фильтрации, пагинации и выборки данных через Get/events
-
-<b> Структура запроса:</b> 
+### Фильтрация и пагинация
 
     GET /events?title={string}&from={date}&to={date}&page={int}&pageSize={int}
 
-Фильтрация осуществляется по:
+Фильтрация по названию (`title`), по диапазону дат (`from`/`to`) или их сочетанию. Формат
+ответа:
 
-- Названию:<code>?title=meet</code>
-- Дате начала и окончания: <code> ?from=2024-01-01 </code>  <code>?to=2024-12-31</code>
-- Комбинированный фильтр:<code>/events?title=meet&from=2024-01-01&to=2024-12-31&page=1&pageSize=5 </code>
-
-Формат ответа PaginatedResultDto:
-
-    "pageIndex": 1,
-    "entriesCount": 42,
-    "data": [
-            {
-                "id": "guid",
-                "title": "string",
-                "description": "string",
-                "startAt": "2024-01-01T10:00:00",
-                "endAt": "2024-01-01T11:00:00"
-            }
-            ]
-
-## События
-
-Модель `Event`
-Класс `Event` представляет доменную сущность «Событие» и содержит основную информацию о мероприятии, включая параметры
-бронирования мест.
-
-### Основные поля
-
-    `Id` — уникальный идентификатор события (Guid), генерируется автоматически при создании объекта.
-    `Title` — название события.
-    `Description` — описание события.
-    `StartAt` / `EndAt` — время начала и окончания.
-    `TotalSeats` — общее количество мест, доступных для бронирования.
-    `AvailableSeats` — текущее количество свободных мест.
-
-Изначально равно `TotalSeats`, уменьшается при бронировании и увеличивается при отмене/отклонении.
-
-### Конструкторы
-
-Создание события вручную
-
-    public Event(string title, string description, DateTime startAt, DateTime endAt, int totalSeats)
-
-Используется при создании новых событий в приложении.
-
-Инициализирует:
-
-    Id — новым Guid
-    TotalSeats — значением параметра
-    AvailableSeats — равным TotalSeats
-
-Создание события из DTO
-
-    public Event(EventDto dto)
-
-Используется при загрузке данных из внешних источников (например, из JSON).
-Переносит данные из DTO в доменную модель и выставляет:
-
-    TotalSeats — из DTO
-    AvailableSeats — равным TotalSeats
-
-## Бронирование событий
-
-Новые эндпоинты
-
-    POST /events/{id}/book 
-
-Создает новое бронирование для указанного события.
-
-Описание:
-Создает объект Booking, сохраняет его в базе и помещает в очередь фоновой обработки.
-Возвращает идентификатор созданного бронирования и статус Pending.
-
-Ответы:
-
-- 202 Accepted — бронирование принято в обработку
-- 404 Not Found — событие не найдено
-- 409 Conflict - отсутствуют места на данное событие
-
-  GET /bookings/{id}
-
-- Возвращает текущее состояние бронирования.
-
-Ответы:
-
-- 200 OK — возвращает объект бронирования
-- 404 Not Found — бронирование не найдено
-
-  public class Booking
-  {
-  public Guid Id;
-  public Guid EventId;
-  public BookingStatus Status;
-  public DateTime CreatedAt;
-  public DateTime ProceedAt;
-
-        public Booking(Guid eventId)
+    {
+      "pageIndex": 1,
+      "entriesCount": 42,
+      "data": [
         {
-            Id = Guid.NewGuid();
-            EventId = eventId;
-            CreatedAt = DateTime.UtcNow;
-            Status = BookingStatus.Pending;
+          "id": "guid",
+          "title": "string",
+          "description": "string",
+          "startAt": "2026-01-01T10:00:00Z",
+          "endAt": "2026-01-01T11:00:00Z"
         }
-  }
+      ]
+    }
 
-### Поля
+### Модель Event
 
-    Id — уникальный идентификатор бронирования
-    EventId — идентификатор события
-    Status — текущий статус бронирования
-    CreatedAt — время создания
-    ProceedAt — время обработки (устанавливается фоновым сервисом)
+Поля: `Id`, `Title`, `Description`, `StartAt`/`EndAt`, `TotalSeats`, `AvailableSeats`.
+`AvailableSeats` изначально равно `TotalSeats` и уменьшается при получении подтверждённой брони
+из Kafka. На уровне базы данных действуют CHECK-ограничения: `AvailableSeats` не может быть
+отрицательным и не может превышать `TotalSeats`, `EndAt` не может быть раньше `StartAt`.
 
-### Статусы
+## Booking Service
 
-    Pending — бронирование создано и ожидает обработки
-    Confirmed — фоновый сервис подтвердил бронирование
-    Rejected — статус для возможного расширения логики
+Отвечает за создание и отмену бронирований.
 
-### Логика фоновой обработки
+### Эндпоинты
 
-Фоновый сервис (BackgroundBookingService) обрабатывает бронирования асинхронно.
+    POST   /events/{eventId}/book        — создать бронирование (требует аутентификации)
+    GET    /events/bookings/{bookingId}  — получить бронирование (владелец или Admin)
+    DELETE /events/bookings/{bookingId}  — отменить бронирование (владелец или Admin)
 
-#### Основные этапы:
+`POST /events/{eventId}/book` создаёт бронирование со статусом `Pending` и сразу возвращает
+`202 Accepted` с идентификатором брони — подтверждение происходит асинхронно.
 
-- При создании бронирования оно помещается в очередь.
-- BackgroundBookingService периодически извлекает элементы из очереди.
-- Если очередь пуста, сервис делает небольшую задержку, чтобы избежать избыточной нагрузки.
-- Для каждого бронирования выполняется задержка, имитирующая обработку.
-- Статус бронирования изменяется на Confirmed.
-- Поле ProceedAt заполняется текущим временем.
-- Обновленный объект доступен через GET /bookings/{id}.
+### Модель Booking
 
-#### Пример сценария использования
+Поля: `Id`, `EventId`, `UserId`, `Status`, `CreatedAt`, `ProcessedAt`. `EventId` и `UserId`
+хранятся как простые идентификаторы без внешнего ключа — `Event` и `User` физически находятся в
+базах данных других сервисов.
 
-1) Клиент отправляет запрос
-   <code>POST /events/{eventId}/book</code>
-   Сервер создает бронирование со статусом Pending и возвращает его Id.
+Статусы: `Pending` (создана, ожидает подтверждения), `Confirmed` (подтверждена фоновым
+обработчиком), `Rejected` (отклонена), `Cancelled` (отменена пользователем или администратором).
 
-2) Через короткое время фоновый сервис:
-    - извлекает бронирование из очереди
-    - выполняет задержку
-    - обновляет статус на Confirmed
+### Лимит бронирований на пользователя
 
-3) Клиент запрашивает
-   `GET /bookings/{bookingId}`
-   и получает обновленный статус.
+Количество активных бронирований на одного пользователя ограничено значением
+`BOOKING_USER_LIMIT` (см. переменные окружения). При превышении лимита выбрасывается
+`BookingLimitReachedException`, клиенту возвращается `409 Conflict`.
 
-4) После обработки клиент видит:
-    - Status = Confirmed
-    - ProceedAt содержит время обработки
+### Фоновая подтверждение бронирований
 
-### Примитивы синхронизации, использованные в проекте
+`BackgroundBookingService` — фоновый процесс, который периодически считывает `Pending`-брони,
+переводит их в статус `Confirmed` и публикует событие `BookingConfirmed` в Kafka. Публикация
+происходит строго после сохранения изменения статуса в собственной базе данных.
 
-В проекте используются два разных механизма синхронизации, каждый из которых решает свою задачу в разных слоях системы.
+## Auth Service
 
-### 1) lock в BookingService спользуется для защиты критической секции при создании брони.
+Отвечает за регистрацию, вход и выдачу JWT-токенов.
 
-#### Зачем нужен
+### Эндпоинты
 
-Метод CreateBookingAsync выполняет атомарную операцию:
+    POST /auth/register     — регистрация нового пользователя с ролью User
+    POST /auth/login        — вход, возвращает JWT-токен
+    POST /auth/admin/create — создание пользователя с ролью Admin (требует роль Admin)
 
-* Получить событие
-* Проверить доступные места
-* Зарезервировать место
-* Обновить событие
-* Создать бронь
+## Взаимодействие сервисов через Kafka
 
-Без lock два параллельных потока могли бы:
+Единственный канал асинхронного взаимодействия между сервисами — топик `booking-confirmed`.
 
-- одновременно прочитать AvailableSeats = 1
-- оба решить, что место есть
-- оба создать бронь
-- в итоге получить овербукинг
+1. `BackgroundBookingService` в `BookingService` подтверждает `Pending`-бронь в своей базе данных
+   и публикует сообщение `BookingConfirmed { BookingId, EventId, UserId, SeatsCount,
+   ConfirmedAt }` через `KafkaBookingConfirmedPublisher`. Ключ сообщения — `EventId`, что
+   гарантирует последовательную обработку всех броней одного события внутри одной партиции.
+2. `EventsService` подписан на `booking-confirmed` через `BookingConfirmedConsumer`
+   (`BackgroundService`). При получении сообщения уменьшает `AvailableSeats` у соответствующего
+   события.
+3. Если событие не найдено или свободных мест недостаточно, сообщение пропускается с
+   логированием — подписчик не останавливается на одном некорректном сообщении.
 
-#### Что защищает
+Продюсер (`IProducer<string, string>`) регистрируется как singleton и освобождается при
+остановке приложения. Топик `booking-confirmed` создаётся автоматически при старте
+`EventsService` через `KafkaTopicInitializer`, если ещё не существует; ошибка создания топика не
+останавливает запуск сервиса.
 
-lock (_bookingLock) гарантирует, что только один поток может выполнять эту последовательность действий одновременно.
-Это полностью устраняет гонку за места.
+## Идемпотентность обработки сообщений
 
-### 2) SemaphoreSlim в BackgroundBookingService
+Поскольку Kafka гарантирует доставку не менее одного раза (at-least-once), одно и то же
+сообщение `BookingConfirmed` может быть обработано `EventsService` повторно — например, при
+перезапуске сервиса до коммита offset-а. Для защиты от повторного уменьшения количества
+свободных мест `EventsService` хранит отдельную таблицу `processed_messages` с уникальным
+первичным ключом на `BookingId`: перед обработкой сообщения проверяется, не встречался ли уже
+такой `BookingId`, а после успешной обработки идентификатор фиксируется в этой таблице.
+Уникальность ключа на уровне базы данных защищает и от гонки при параллельной обработке.
 
-Используется для защиты записи в хранилище при параллельной обработке заявок.
+## Миграции базы данных
 
-#### Зачем нужен
+Каждый сервис управляет своей схемой независимо, миграции применяются автоматически при старте
+контейнера через `Database.MigrateAsync()`.
 
-Фоновый сервис обрабатывает Pending‑брони параллельно:
+Создание новой миграции (пример для `EventsService`, для остальных сервисов — по аналогии, с
+подстановкой соответствующих путей):
 
-    var tasks = pending.Select(ProcessBookingAsync);
-    await Task.WhenAll(tasks);
+    dotnet ef migrations add MigrationName --project src/EventsService/Infrastructure/Infrastructure.csproj --startup-project src/EventsService/Web/Web.csproj
 
-Но при этом:
+Применение миграций вручную (без запуска приложения):
 
-- обновление брони (booking.Confirm() / booking.Reject())
-- обновление события (event.ReleaseSeats() / event.Update())
-- должно быть строго последовательным, чтобы не повредить данные.
+    dotnet ef database update --project src/EventsService/Infrastructure/Infrastructure.csproj --startup-project src/EventsService/Web/Web.csproj
 
-#### Что защищает
-
-SemaphoreSlim(1, 1) обеспечивает:
-
-- параллельные задержки (Task.Delay)
-- но последовательную запись в хранилище
-  Это позволяет:
-- обрабатывать много заявок одновременно
-- но не допускать конфликтов при обновлении данных
-
-### Пример сценария овербукинга (гонки потоков)
-
-Ниже — реальный пример того, что происходило бы без синхронизации.
-Условие:
-
-    Событие имеет 5 мест.
-    Поступает 20 параллельных запросов на бронирование.
-
-Что происходит без lock
-
-1) Потоки A и B одновременно читают AvailableSeats = 1
-2) Оба считают, что место есть
-3) Оба вызывают TryReserveSeats()
-4) Оба уменьшают AvailableSeats до 0 (или даже до -1)
-5) Оба создают бронь
-   В итоге:
-
-- создано 6, 7, 10 или даже 20 броней
-- AvailableSeats становится отрицательным
-- система допускает овербукинг
-
-#### Почему так происходит
-
-Потоки читают и изменяют общее состояние одновременно, без защиты.
-
-#### Как решено в проекте
-
-- lock в BookingService делает операцию резервирования атомарной
-- SemaphoreSlim в BackgroundBookingService делает обновление хранилища последовательным
-
-В результате:
-
-- максимум создаётся ровно столько броней, сколько мест
-- остальные запросы получают NoAvailableSeatsException
-- AvailableSeats никогда не уходит в минус
+Используется `Database.MigrateAsync()`, а не `EnsureCreated()` — последний не создаёт
+CHECK-ограничения, индексы и не подходит для продакшена и интеграционных тестов.
 
 ## Тестирование
 
-Проект содержит два типа тестов: юнит‑тесты и интеграционные тесты.
+Каждый сервис содержит два типа тестов в собственном тестовом проекте.
 
-1) Юнит‑тесты (InMemory EF Core):
+### Юнит-тесты
 
-Используют:
+Проверяют бизнес-логику сервисов (`Application`) с замоканными репозиториями и внешними
+зависимостями (Moq), не требуют базы данных или Kafka.
 
-        <code> UseInMemoryDatabase(Guid.NewGuid().ToString())</code>
+    dotnet test src/EventsService/Tests/UnitTests/UnitTests.csproj
+    dotnet test src/BookingService/Tests/UnitTests/UnitTests.csproj
+    dotnet test src/AuthService/Tests/UnitTests/UnitTests.csproj
 
-Проверяют:
+### Интеграционные тесты
 
-- бизнес‑логику сервисов
-- фильтрацию
-- пагинацию
-- работу фонового сервиса (частично)
-- Не требуют PostgreSQL.
+Поднимают реальный PostgreSQL через Testcontainers, применяют миграции и проверяют работу
+репозиториев, ограничений схемы (CHECK, индексы, уникальные ключи) и сквозных сценариев (в том
+числе фоновую обработку бронирований). Требуют установленный Docker.
 
-Запуск:
+    dotnet test src/EventsService/Tests/IntegrationTests/IntegrationTests.csproj
+    dotnet test src/BookingService/Tests/IntegrationTests/IntegrationTests.csproj
+    dotnet test src/AuthService/Tests/IntegrationTests/IntegrationTests.csproj
 
-    dotnet test
+## Формат ошибок
 
-2) Интеграционные тесты (PostgreSQL + Testcontainers)
-   Интеграционные тесты:
+При возникновении ошибки возвращается JSON-ответ следующего вида:
 
-- запускают реальный PostgreSQL внутри Docker;
-- автоматически применяют миграции EF Core;
-- проверяют все методы репозиториев (EventRepository и BookingRepository);
-- проверяют CHECK‑ограничения, FOREIGN KEY, индексы;
-- проверяют конкурентность (overbooking);
-- проверяют работу BackgroundBookingService;
-- очищают БД между тестами через TRUNCATE TABLE events, bookings.
+    {
+      "status": 400,
+      "detail": "подробное описание ошибки"
+    }
 
-<b>Требования</b>
-
-- установлен Docker
-- возможность запускать контейнеры (WSL2, Linux, macOS)
-
-<b>Запуск</b>
-
-    dotnet test
-
-## Ошибки
-
-В результате возникновения ошибок, будет отображен ответ формата json в котором присутствуют следующие поля:
-
-- Status - числовой статус ошибки, который соответствует стандартным кодам ответа HTTP
-- Detail - подробное описание возникшей ошибки
+- `status` — числовой код ошибки, соответствующий стандартным кодам HTTP.
+- `detail` — подробное описание возникшей ошибки.
