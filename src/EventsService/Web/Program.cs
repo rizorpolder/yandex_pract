@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using Common.Extensions;
 using EventsService.Application;
 using EventsService.Infrastructure;
 using EventsService.Presentation;
@@ -17,12 +18,17 @@ public class Program
 		builder.Services.AddPresentation();
 		builder.Services.AddInfrastructure(builder.Configuration);
 		builder.Services.AddApplication();
-
+		builder.Services.AddObservability(builder.Configuration, serviceName:"EventsService");
+		
+		builder.UseSerilog();
+		
 		AddAuth(builder);
 		builder.Services.AddAuthorization();
 
 		var app = builder.Build();
 
+		app.UseObservability();
+		
 		app.UseMiddleware<ErrorCustomMiddleware>();
 
 		app.UseHttpsRedirection();

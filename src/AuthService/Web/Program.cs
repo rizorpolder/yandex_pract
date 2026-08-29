@@ -1,6 +1,7 @@
 using System.Text;
 using Application;
 using Application.Services.Abstraction.Services.Auth;
+using Common.Extensions;
 using Common.Models;
 using Domain.Models.Users;
 using Infrastructure;
@@ -21,7 +22,10 @@ public class Program
 		builder.Services.AddPresentation();
 		builder.Services.AddInfrastructure(builder.Configuration);
 		builder.Services.AddApplication();
-
+		builder.Services.AddObservability(builder.Configuration, serviceName: "AuthService");
+		
+		builder.UseSerilog();
+		
 		var jwtOptions = GetConfiguration<JwtOptions>(builder, "Jwt");
 
 		builder.Services.AddAuthentication(options =>
@@ -52,6 +56,8 @@ public class Program
 		builder.Services.AddAuthorization();
 
 		var app = builder.Build();
+		app.UseObservability();
+
 		app.UseMiddleware<ErrorCustomMiddleware>();
 
 		app.UseHttpsRedirection();
@@ -62,8 +68,9 @@ public class Program
 
 		app.UsePresentation();
 		app.UseInfrastructure();
-		var endpoints =  app.MapEndpoints();
-		
+
+		app.MapEndpoints();
+
 
 		CreateSuperuser(app);
 

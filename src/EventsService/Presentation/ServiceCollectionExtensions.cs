@@ -18,7 +18,7 @@ public static class ServiceCollectionExtensions
 			{
 				options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 			});
-		
+
 		services.AddEndpointsApiExplorer(); // ← критично для Minimal API
 		services.AddSwaggerGen(options =>
 		{
@@ -68,9 +68,8 @@ public static class ServiceCollectionExtensions
 		return app;
 	}
 
-	public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder endpoints)
+	public static void MapEndpoints(this IEndpointRouteBuilder endpoints)
 	{
 		endpoints.MapEventsEndpoints();
-		return endpoints;
 	}
 }
