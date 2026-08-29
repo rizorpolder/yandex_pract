@@ -1,10 +1,14 @@
 using Common.Tests.Interfaces;
+using EventsService.Application.Services.Abstraction.Caching;
 using EventsService.Application.Services.EventService;
 using EventsService.Application.Services.EventService.Dto;
 using EventsService.Application.Services.Filters;
+using EventsService.Application.Services.Options;
 using EventsService.Infrastructure.Contexts;
 using EventsService.Infrastructure.Repositories;
 using IntegrationTest.Tests.Fixture;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace IntegrationTest.Tests;
 
@@ -27,7 +31,15 @@ public sealed class PaginationTest : ABaseTestRepository<AppDbContext>, IClassFi
 		{
 			var eventRepo = new EfEventRepository(arrange);
 			var filter = new EventFilterService();
-			var eventService = new EventService(eventRepo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(eventRepo, filter, cache.Object, cacheOptions);
+
 
 			for (int i = 0; i < 25; i++)
 			{
@@ -49,7 +61,15 @@ public sealed class PaginationTest : ABaseTestRepository<AppDbContext>, IClassFi
 		{
 			var eventRepo = new EfEventRepository(act1);
 			var filter = new EventFilterService();
-			var eventService = new EventService(eventRepo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(eventRepo, filter, cache.Object, cacheOptions);
+
 
 			var page1 = await eventService.GetEvents(null, null, null, 1, 5);
 
@@ -60,7 +80,15 @@ public sealed class PaginationTest : ABaseTestRepository<AppDbContext>, IClassFi
 		{
 			var eventRepo = new EfEventRepository(act2);
 			var filter = new EventFilterService();
-			var eventService = new EventService(eventRepo, filter);
+			var cache = new Mock<ICacheService>();
+			var cacheOptions = Options.Create(new CacheOptions
+			{
+				EventTtlSeconds = 300,
+				TopEventsTtlSeconds = 300
+			});
+
+			var eventService = new EventService(eventRepo, filter, cache.Object, cacheOptions);
+
 
 			var page2 = await eventService.GetEvents(null, null, null, 2, 5);
 
