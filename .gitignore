@@ -122,9 +122,9 @@ out/
 .nuxt
 
 # dotenv environment variable files
-#.env
-#.env.local
-#.env.*.local
+.env
+.env.local
+.env.*.local
 
 # npm cache directory
 .npm
