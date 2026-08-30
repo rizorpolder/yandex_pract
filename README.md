@@ -149,23 +149,23 @@ docker-compose.yml
 Все настройки передаются через `.env` в корне репозитория (файл не хранится в репозитории,
 только пример `.env.example`).
 
-    JWT_SECRET=<длинный случайный секрет, одинаковый для всех трёх сервисов>
-    JWT_ISSUER=<издатель токена>
-    JWT_AUDIENCE=<аудитория токена>
+    JWT_SECRET=super_secret_key_12345678901234567890
+    JWT_ISSUER=MyApp
+    JWT_AUDIENCE=MyAppUsers
     JWT_LIFETIME_MINUTES=60
     BOOKING_USER_LIMIT=10
-    AUTH_DB_PASSWORD=<пароль базы AuthService>
-    EVENTS_DB_PASSWORD=<пароль базы EventsService>
-    BOOKING_DB_PASSWORD=<пароль базы BookingService>
+    EVENTS_DB_PASSWORD=events_pg_password
+    BOOKING_DB_PASSWORD=booking_pg_password
+    AUTH_DB_PASSWORD=auth_pg_password
     REDIS_HOST=redis
     REDIS_PORT=6379
-    REDIS_PASSWORD=<длинный случайный пароль>
+    REDIS_PASSWORD=some_long_random_password_123
     REDIS_CONNECT_TIMEOUT_MS=5000
     REDIS_SYNC_TIMEOUT_MS=3000
     CACHE_EVENT_TTL_SECONDS=300
     CACHE_TOP_EVENTS_TTL_SECONDS=300
-    OTLP_ENDPOINT=http://jaeger:4317
     GRAFANA_ADMIN_PASSWORD=admin
+    OTLP_ENDPOINT=http://jaeger:4317
 
 `docker-compose.yml` подставляет эти значения в переменные окружения контейнеров
 (`Jwt__Secret`, `ConnectionStrings__DefaultConnection` и т.п.) — двойное подчёркивание в имени
