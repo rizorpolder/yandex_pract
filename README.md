@@ -14,6 +14,7 @@
 - [Взаимодействие сервисов через Kafka](#взаимодействие-сервисов-через-kafka)
 - [Идемпотентность обработки сообщений](#идемпотентность-обработки-сообщений)
 - [Кэширование (Redis)](#кэширование-redis)
+- [Наблюдаемость (логи, трейсинг, метрики)](#наблюдаемость-логи-трейсинг-метрики)
 - [Миграции базы данных](#миграции-базы-данных)
 - [Тестирование](#тестирование)
 - [Формат ошибок](#формат-ошибок)
@@ -103,7 +104,8 @@ docker-compose.yml
 - .NET SDK 9.0
 - Docker и Docker Compose (основной способ запуска)
 - Для локальной разработки без Docker дополнительно потребуются: PostgreSQL 16 (три отдельных
-  базы или три инстанса), Apache Kafka и Redis (используется `EventsService` для кэширования)
+  базы или три инстанса), Apache Kafka, Redis (используется `EventsService` для кэширования) и
+  стек наблюдаемости — Jaeger, Prometheus, Grafana
 
 ## Запуск через Docker Compose
 
@@ -130,6 +132,9 @@ docker-compose.yml
    - EventsService — `http://localhost:5002/swagger`
    - BookingService — `http://localhost:5003/swagger`
    - Kafka broker — `localhost:9092`
+   - Jaeger UI — `http://localhost:16686`
+   - Prometheus UI — `http://localhost:9090`
+   - Grafana — `http://localhost:3000`
 
 Запуск только части системы (например, для проверки одного сервиса):
 
@@ -159,6 +164,8 @@ docker-compose.yml
     REDIS_SYNC_TIMEOUT_MS=3000
     CACHE_EVENT_TTL_SECONDS=300
     CACHE_TOP_EVENTS_TTL_SECONDS=300
+    OTLP_ENDPOINT=http://jaeger:4317
+    GRAFANA_ADMIN_PASSWORD=admin
 
 `docker-compose.yml` подставляет эти значения в переменные окружения контейнеров
 (`Jwt__Secret`, `ConnectionStrings__DefaultConnection` и т.п.) — двойное подчёркивание в имени
@@ -372,6 +379,72 @@ Redis-клиент (`RedisCacheService`) не пробрасывает искл�
 `AbortOnConnectFail = false`, чтобы кратковременная недоступность Redis в момент старта сервиса
 (например, при поднятии docker-compose, если контейнер Redis ещё не готов) не мешала запуску
 самого приложения.
+
+## Наблюдаемость (логи, трейсинг, метрики)
+
+Все три сервиса инструментированы через OpenTelemetry. Общая настройка (сборка провайдеров
+трассировки и метрик, экспортёры) вынесена в `Shared/Common` в виде расширения
+`AddObservability(configuration, serviceName)`; каждый сервис вызывает его в своём `Program.cs`,
+передавая собственное имя (`AuthService`, `EventsService`, `BookingService`), — это позволяет
+не дублировать код настройки и при этом различать сервисы в инструментах мониторинга.
+
+### Логирование
+
+Структурированное логирование настроено через Serilog (`UseSerilog` в `Shared/Common`), вывод —
+в консоль контейнера в формате compact JSON. Конфигурация читается из секции `Serilog` в
+`appsettings.json`/переменных окружения, что позволяет менять уровень логирования без
+пересборки образа.
+
+### Трассировка (Jaeger)
+
+Трассировка запросов реализована через OpenTelemetry с экспортом по протоколу OTLP (gRPC).
+Инструментированы входящие HTTP-запросы (ASP.NET Core), исходящие HTTP-вызовы (`HttpClient`) и
+запросы к базе данных (Entity Framework Core), что позволяет видеть в одном трейсе полный путь
+запроса, включая обращения к PostgreSQL.
+
+Коллектором и хранилищем трейсов служит Jaeger (образ `jaegertracing/all-in-one`), поднятый как
+отдельный сервис в `docker-compose.yml`. Каждый из трёх сервисов отправляет трейсы по адресу,
+заданному переменной `OTLP_ENDPOINT` (`http://jaeger:4317` внутри Docker-сети).
+
+UI Jaeger доступен на `http://localhost:16686`. В выпадающем списке Service отображаются три
+сервиса под своими именами; поскольку `BookingService` и `EventsService` взаимодействуют
+асинхронно через Kafka, а не через прямой HTTP-вызов, единой сквозной трассы через оба сервиса
+для одного бронирования нет — это ожидаемое следствие выбранной асинхронной архитектуры
+взаимодействия, а не недостаток настройки трассировки.
+
+### Метрики (Prometheus, Grafana)
+
+Каждый сервис экспортирует метрики в формате Prometheus по эндпоинту `/metrics`
+(`app.MapPrometheusScrapingEndpoint()`), включая стандартные метрики ASP.NET Core (длительность
+обработки запросов, количество активных запросов, throughput) и метрики рантайма .NET
+(потребление памяти, работа сборщика мусора, количество потоков).
+
+Prometheus (`docker-compose.yml`, конфигурация — `prometheus.yml`) опрашивает все три сервиса по
+их именам в Docker-сети (`events-service:8080`, `booking-service:8080`, `auth-service:8080`) с
+интервалом 15 секунд. UI Prometheus доступен на `http://localhost:9090`, список и статус
+таргетов — на `http://localhost:9090/targets`.
+
+Grafana (`http://localhost:3000`, логин `admin`, пароль — значение переменной
+`GRAFANA_ADMIN_PASSWORD`) используется для визуализации метрик из Prometheus. Источник данных
+Prometheus (`http://prometheus:9090`) добавляется в Grafana вручную при первом запуске
+(Connections → Data sources → Add data source). Готовый дашборд с панелями latency (p50/p95/p99
+по `http_server_request_duration_seconds`), количества активных запросов
+(`http_server_active_requests`) и throughput (`http_server_request_duration_seconds_count`)
+хранится в репозитории в `grafana/dashboards/events-platform-dashboard.json` и импортируется
+через Dashboards → Import.
+
+### Запуск стека наблюдаемости
+
+Jaeger, Prometheus и Grafana поднимаются вместе с остальной системой одной и той же командой,
+никаких дополнительных шагов не требуется:
+
+    docker compose up --build
+
+Проверка, что сервисы отдают метрики:
+
+    curl http://localhost:5001/metrics
+    curl http://localhost:5002/metrics
+    curl http://localhost:5003/metrics
 
 ## Миграции базы данных
 

@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using BookingService.Application;
 using BookingService.Infrastructure;
+using Common.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -17,11 +18,16 @@ public class Program
 		builder.Services.AddPresentation();
 		builder.Services.AddInfrastructure(builder.Configuration);
 		builder.Services.AddApplication();
+		builder.Services.AddObservability(builder.Configuration, serviceName: "BookingService");
+		builder.UseSerilog();
+
 
 		AddAuth(builder);
 		builder.Services.AddAuthorization();
 
 		var app = builder.Build();
+
+		app.UseObservability();
 
 		app.UseMiddleware<ErrorCustomMiddleware>();
 

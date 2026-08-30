@@ -72,6 +72,37 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: eventapi-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+  
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: eventapi-jaeger
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP gRPC
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: eventapi-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
+  
   # ===== Сервисы =====
   auth-service:
     build:
@@ -86,6 +117,8 @@ services:
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - Jwt__LifetimeMinutes=${JWT_LIFETIME_MINUTES}
+      - Otlp__Endpoint=${OTLP_ENDPOINT}
+
     depends_on:
       auth-db:
         condition: service_healthy
@@ -111,6 +144,8 @@ services:
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - Kafka__BootstrapServers=kafka:9092
+      - Otlp__Endpoint=${OTLP_ENDPOINT}
+    
     depends_on:
       events-db:
         condition: service_healthy
@@ -133,6 +168,7 @@ services:
       - Jwt__Audience=${JWT_AUDIENCE}
       - BookingParams__LimitPerUser=${BOOKING_USER_LIMIT}
       - Kafka__BootstrapServers=kafka:9092
+      - Otlp__Endpoint=${OTLP_ENDPOINT}
     depends_on:
       booking-db:
         condition: service_healthy
@@ -144,3 +180,4 @@ volumes:
   events-db-data:
   booking-db-data:
   redis-data:
+  grafana-data: 
